@@ -70,12 +70,12 @@ included — would reach nobody. Answer as soon as the app renders; the pass wak
 and a card that lands after a publish never reaches the live app on its own:
 "Added the share card — publish again if you already did." / "The card failed; the default one stands."
 
-While the pass keeps `/workspace/.grok/og-pending` fresh, brand checks say nothing about the card: in flight
+While the pass keeps `/workspace/.aural/og-pending` fresh, brand checks say nothing about the card: in flight
 is not a finding. The marker goes stale after 10 minutes, so a very long pass lets the warning through — but
 a brand warning while it runs is never a cue to redo its work.
 
 **No `task` tool? Then you are the pass** — build the assets now; nothing else will. Whoever runs it claims
-that marker, stages files under `/workspace/.grok/` — never inside `public/`, which `vite build` copies
+that marker, stages files under `/workspace/.aural/` — never inside `public/`, which `vite build` copies
 verbatim into the deployed app — hands it over with `scripts/write-atomic.mjs` so no build reads half a JPEG,
 and self-checks with `node scripts/brand-check.mjs --game`.
 

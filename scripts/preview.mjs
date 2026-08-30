@@ -27,8 +27,8 @@ const PREVIEW_PORT = 8081;
 const PREVIEW_URL = `http://127.0.0.1:${PREVIEW_PORT}/`;
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const PID_FILE = join(ROOT, ".grok/preview.pid");
-const LOG_FILE = join(ROOT, ".grok/preview.log");
+const PID_FILE = join(ROOT, ".aural/preview.pid");
+const LOG_FILE = join(ROOT, ".aural/preview.log");
 const READY_TIMEOUT_MS = Number(process.env.PREVIEW_READY_TIMEOUT_MS || 60000);
 const GRACE_MS = 3000;
 const POLL_MS = 100;

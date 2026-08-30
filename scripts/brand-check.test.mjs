@@ -33,7 +33,7 @@ function makeWorkspace({
   const root = mkdtempSync(join(tmpdir(), "brand-check-"));
   mkdirSync(join(root, "public"), { recursive: true });
   mkdirSync(join(root, "src/lib/og"), { recursive: true });
-  mkdirSync(join(root, ".grok"), { recursive: true });
+  mkdirSync(join(root, ".aural"), { recursive: true });
   if (pendingAgeMs !== undefined) {
     const marker = join(root, OG_PENDING_REL_PATH);
     writeFileSync(marker, "");
@@ -308,7 +308,7 @@ const readDoc = (rel) => readFileSync(join(TEMPLATE_ROOT, rel), "utf8");
 test("SKILL.md and AGENTS.md name the marker path and bound this script uses", () => {
   // Prose wraps, so the minute count may straddle a line break.
   const bound = new RegExp(`${OG_PENDING_MAX_AGE_MS / 60_000}\\s+minutes`);
-  for (const rel of [".grok/skills/og/SKILL.md", "AGENTS.md"]) {
+  for (const rel of [".aural/skills/og/SKILL.md", "AGENTS.md"]) {
     const doc = readDoc(rel);
     assert.ok(doc.includes(`/workspace/${OG_PENDING_REL_PATH}`), `${rel}: marker path`);
     assert.ok(bound.test(doc), `${rel}: staleness bound`);
@@ -320,7 +320,7 @@ test("SKILL.md and AGENTS.md name the marker path and bound this script uses", (
 // feature adds to it this test's business.
 const PROHIBITION_SECTIONS = [
   {
-    rel: ".grok/skills/og/SKILL.md",
+    rel: ".aural/skills/og/SKILL.md",
     label: '§ "Brand-asset pass"',
     from: "## Brand-asset pass:",
     until: /\n## /,
@@ -363,7 +363,7 @@ test("the sections that own the brand-task prohibition never affirm a wait", () 
 });
 
 test("SKILL.md tells the pass to self-check with the flag this CLI accepts", () => {
-  const skill = readDoc(".grok/skills/og/SKILL.md");
+  const skill = readDoc(".aural/skills/og/SKILL.md");
   const invocations = skill.match(/node scripts\/brand-check\.mjs[^\n`]*/g) ?? [];
   assert.ok(invocations.length > 0);
   for (const line of invocations) {

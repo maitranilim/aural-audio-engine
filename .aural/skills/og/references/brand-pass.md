@@ -6,22 +6,22 @@ building and never waits, so everything below is yours to get right unobserved.
 
 ## 1. Claim the marker, keep it fresh, always release it
 
-`touch /workspace/.grok/og-pending` before generating and again before each
+`touch /workspace/.aural/og-pending` before generating and again before each
 `imagine_*` call — while that marker is fresh `brand-check.mjs` suppresses the
 missing-card warnings the parent would otherwise act on, and it goes stale after
 10 minutes so a killed pass cannot silence the check forever.
-`rm -f /workspace/.grok/og-pending` on every exit path, success or not.
+`rm -f /workspace/.aural/og-pending` on every exit path, success or not.
 
 ## 2. Hand every file over atomically
 
 `public/og.jpg`, `public/x-banner.jpg` and `src/lib/og/site.json` alike. The
 parent may be mid-`npm run build` and would then read a half-written JPEG. Write
-to a staged path under `/workspace/.grok/` — never inside `public/`, which
+to a staged path under `/workspace/.aural/` — never inside `public/`, which
 `vite build` copies verbatim into the deployed app, and never on another
 filesystem such as `/tmp`, where the hand-over cannot be a rename — then:
 
 ```sh
-node scripts/write-atomic.mjs /workspace/.grok/og.jpg.tmp public/og.jpg
+node scripts/write-atomic.mjs /workspace/.aural/og.jpg.tmp public/og.jpg
 ```
 
 `src/lib/og/site.json` is the only file this pass writes under `src/`. Hand it

@@ -70,15 +70,15 @@ contract only (size, lockup, wiring).
    ```sh
    ffmpeg -y -i card-raw.jpg \
      -vf "scale=1200:630:force_original_aspect_ratio=increase,crop=1200:630" \
-     -q:v 4 /workspace/.grok/og.jpg.tmp
-   node scripts/write-atomic.mjs /workspace/.grok/og.jpg.tmp public/og.jpg
+     -q:v 4 /workspace/.aural/og.jpg.tmp
+   node scripts/write-atomic.mjs /workspace/.aural/og.jpg.tmp public/og.jpg
    ```
 
 5. **Tell the injector the card is custom** — set `"card": "custom"` in
    `src/lib/og/site.json`, handed over the same way, and keep `public/og.jpg`:
 
    ```sh
-   node scripts/write-atomic.mjs /workspace/.grok/site.json.tmp src/lib/og/site.json
+   node scripts/write-atomic.mjs /workspace/.aural/site.json.tmp src/lib/og/site.json
    ```
 
    Bake also infers custom

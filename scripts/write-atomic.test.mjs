@@ -116,7 +116,7 @@ test("a staged file on another filesystem is refused, not copied", () => {
   };
 
   assert.throws(() => handOver(staged, target, { rename: crossDevice }), {
-    message: /stage under \/workspace\/\.grok\//,
+    message: /stage under \/workspace\/\.aural\//,
   });
   // Copying would have had to stage its own temp inside public/, which is the
   // one place stagingError refuses.
@@ -166,7 +166,7 @@ test("cli: relative paths follow the script's root, not the caller's cwd", () =>
 
 test("every hand-over the og skill prints is one this script accepts", () => {
   // The card and banner recipes live in the skill's references/, not SKILL.md.
-  const skillDir = join(TEMPLATE_ROOT, ".grok/skills/og");
+  const skillDir = join(TEMPLATE_ROOT, ".aural/skills/og");
   const docs = [
     join(skillDir, "SKILL.md"),
     ...readdirSync(join(skillDir, "references")).map((f) => join(skillDir, "references", f)),
