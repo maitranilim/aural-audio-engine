@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Aural",
+      "hasCanvas": false,
+      "bodyTextLen": 1543,
+      "bodyTextHash": "98b8ca23b8375d482adc592fed0d675ff9e51bfd7241e66033f86fac3dc23b85",
+      "bodyTextPrefix": "Aural SONIC TAXONOMY Tool How Lineage Atlas Map GENRE · SUBGENRE",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Aural",
+      "hasCanvas": false,
+      "bodyTextLen": 1553,
+      "bodyTextHash": "721bf9d6778bc0f59473ac60d8b067e51d2220c87f6f612ec36b7db0ae475034",
+      "bodyTextPrefix": "Aural SONIC TAXONOMY Lean On Strobe HUMBLE. Midnight City GENRE ",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
