@@ -49,13 +49,10 @@ html[data-theme="dark"] {
   --aural-sheen: rgb(255 255 255 / 0.16);
   --aural-veil: rgb(255 255 255 / 0.06);
   --aural-shadow-glass:
-    inset 0 1px 0 0 rgb(255 255 255 / 0.22),
-    inset 0 -1px 0 0 rgb(255 255 255 / 0.04),
-    0 0 0 1px rgb(255 255 255 / 0.1),
-    0 18px 50px rgb(0 0 0 / 0.38);
+    inset 0 1px 0 0 rgb(255 255 255 / 0.22), inset 0 -1px 0 0 rgb(255 255 255 / 0.04),
+    0 0 0 1px rgb(255 255 255 / 0.1), 0 18px 50px rgb(0 0 0 / 0.38);
   --aural-shadow-glass-hover:
-    inset 0 1px 0 0 rgb(255 255 255 / 0.3),
-    0 0 0 1px rgb(255 255 255 / 0.16),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.3), 0 0 0 1px rgb(255 255 255 / 0.16),
     0 22px 56px rgb(0 0 0 / 0.42);
 }
 
@@ -80,13 +77,10 @@ html[data-theme="light"] {
   --aural-sheen: rgb(255 255 255 / 0.55);
   --aural-veil: rgb(20 24 32 / 0.05);
   --aural-shadow-glass:
-    inset 0 1px 0 0 rgb(255 255 255 / 0.9),
-    inset 0 -1px 0 0 rgb(20 24 32 / 0.04),
-    0 0 0 1px rgb(20 24 32 / 0.08),
-    0 18px 40px rgb(20 24 32 / 0.08);
+    inset 0 1px 0 0 rgb(255 255 255 / 0.9), inset 0 -1px 0 0 rgb(20 24 32 / 0.04),
+    0 0 0 1px rgb(20 24 32 / 0.08), 0 18px 40px rgb(20 24 32 / 0.08);
   --aural-shadow-glass-hover:
-    inset 0 1px 0 0 rgb(255 255 255 / 1),
-    0 0 0 1px rgb(20 24 32 / 0.12),
+    inset 0 1px 0 0 rgb(255 255 255 / 1), 0 0 0 1px rgb(20 24 32 / 0.12),
     0 22px 48px rgb(20 24 32 / 0.1);
 }
 
@@ -125,11 +119,7 @@ html[data-theme="light"] {
 /* Liquid glass surfaces */
 .glass {
   position: relative;
-  background: linear-gradient(
-    180deg,
-    var(--aural-glass-top) 0%,
-    var(--aural-glass-bot) 100%
-  );
+  background: linear-gradient(180deg, var(--aural-glass-top) 0%, var(--aural-glass-bot) 100%);
   backdrop-filter: blur(28px) saturate(1.55);
   -webkit-backdrop-filter: blur(28px) saturate(1.55);
   box-shadow: var(--shadow-glass);
@@ -383,19 +373,73 @@ html[data-theme="light"] {
   }
 }
 
-.reveal {
-  animation: fade-up 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
-  animation-timeline: view();
-  animation-range: entry 0% cover 28%;
+/*
+ * Scroll-scrubbed reveal. `--p` is written by the scroll engine (0 -> 1) and
+ * everything here is a pure function of it, so the element is exactly as
+ * revealed as the reader is far through it.
+ *
+ * No transform: the element never moves, a soft mask edge sweeps across it.
+ * Sliding content up from below is what made the page feel like it was
+ * catching up with the scroll instead of being driven by it.
+ *
+ * Only styled once the engine is live, so a no-JS render shows everything.
+ */
+.scroll-js .reveal {
+  --p: 0;
+  --reveal-edge: calc(var(--p) * 138%);
+  opacity: calc(0.06 + 0.94 * var(--p));
+  -webkit-mask-image: linear-gradient(
+    96deg,
+    #000 0%,
+    #000 calc(var(--reveal-edge) - 30%),
+    transparent var(--reveal-edge)
+  );
+  mask-image: linear-gradient(
+    96deg,
+    #000 0%,
+    #000 calc(var(--reveal-edge) - 30%),
+    transparent var(--reveal-edge)
+  );
 }
 
-@supports not (animation-timeline: view()) {
-  .reveal {
-    animation: none;
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
+/*
+ * Finished elements drop the mask entirely. This is the fix for the closing
+ * section sitting permanently veiled: a completed reveal is plain opaque
+ * content, never a mask that stopped a few percent short.
+ */
+.scroll-js .reveal[data-reveal="done"] {
+  opacity: 1;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Nav pill that fills with how far through its section you are. */
+.nav-track {
+  position: relative;
+  isolation: isolate;
+}
+
+.nav-track::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--aural-fg) 12%, transparent);
+  transform: scaleX(var(--track, 0));
+  transform-origin: left center;
+  transition: opacity 200ms ease;
+}
+
+.chapter-progress {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--color-accent);
+  transform-origin: top center;
+  transform: scaleY(var(--track, 0));
 }
 
 .scroll-cue {
@@ -434,15 +478,21 @@ html[data-theme="light"] {
   .stagger-in > *,
   .mic-ring,
   .scroll-cue,
-  .reveal,
   .caret-blink {
     animation: none !important;
   }
 
   .stagger-in > *,
-  .reveal {
+  .scroll-js .reveal,
+  .scroll-js .reveal[data-reveal="live"] {
     opacity: 1;
     transform: none;
     filter: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+
+  .nav-track::before {
+    transition: none;
   }
 }

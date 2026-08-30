@@ -1,7 +1,8 @@
 import { useLenis } from "lenis/react";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { subscribe } from "@/lib/scroll-progress";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -10,19 +11,6 @@ const LINKS = [
   { id: "lineage", label: "Lineage" },
   { id: "atlas", label: "Atlas" },
 ] as const;
-
-const SECTION_IDS = LINKS.map((l) => l.id);
-
-function sectionAtSpy(): string {
-  const line = Math.round(window.innerHeight * 0.4);
-  let current = SECTION_IDS[0];
-  for (const id of SECTION_IDS) {
-    const el = document.getElementById(id);
-    if (!el) continue;
-    if (el.getBoundingClientRect().top <= line) current = id;
-  }
-  return current;
-}
 
 export function SiteHeader({
   docked,
@@ -33,25 +21,20 @@ export function SiteHeader({
 }) {
   const lenis = useLenis();
   const [active, setActive] = useState("tool");
+  const fills = useRef(new Map<string, HTMLElement>());
 
-  const sync = useCallback(() => {
-    const next = sectionAtSpy();
-    setActive((prev) => (prev === next ? prev : next));
-  }, []);
-
-  useLenis(() => {
-    sync();
-  });
-
-  useEffect(() => {
-    sync();
-    window.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync);
-    return () => {
-      window.removeEventListener("scroll", sync);
-      window.removeEventListener("resize", sync);
-    };
-  }, [sync]);
+  // Progress writes straight to the DOM; only the active id — which changes a
+  // handful of times per page — is allowed to re-render React.
+  useEffect(
+    () =>
+      subscribe((state) => {
+        for (const [id, el] of fills.current) {
+          el.style.setProperty("--track", String(state.sections[id] ?? 0));
+        }
+        if (state.activeId) setActive((prev) => (prev === state.activeId ? prev : state.activeId!));
+      }),
+    [],
+  );
 
   const go = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -64,9 +47,7 @@ export function SiteHeader({
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-40 border-b transition-[background-color,border-color,backdrop-filter] duration-300",
-        docked
-          ? "border-line/60 bg-bg/70 backdrop-blur-xl"
-          : "border-transparent bg-transparent",
+        docked ? "border-line/60 bg-bg/70 backdrop-blur-xl" : "border-transparent bg-transparent",
       )}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
@@ -91,9 +72,13 @@ export function SiteHeader({
                 href={`#${l.id}`}
                 onClick={go(l.id)}
                 aria-current={active === l.id ? "page" : undefined}
+                ref={(node) => {
+                  if (node) fills.current.set(l.id, node);
+                  else fills.current.delete(l.id);
+                }}
                 className={cn(
-                  "rounded-full px-3 py-2 transition-[color,background-color] duration-150",
-                  active === l.id ? "bg-fg/10 text-fg" : "hover:text-fg",
+                  "nav-track rounded-full px-3 py-2 transition-[color] duration-200",
+                  active === l.id ? "text-fg" : "hover:text-fg",
                 )}
               >
                 {l.label}

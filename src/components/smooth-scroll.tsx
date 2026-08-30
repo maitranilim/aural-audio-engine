@@ -2,6 +2,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ReactLenis, useLenis } from "lenis/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import { nudgeScroll, refreshScroll, startScrollEngine, subscribe } from "@/lib/scroll-progress";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -47,17 +48,45 @@ function GsapBridge() {
   return null;
 }
 
+/** Drives the whole scroll system and keeps it in step with Lenis. */
+function ScrollEngine() {
+  const lenis = useLenis();
+
+  useEffect(() => startScrollEngine(), []);
+
+  // Lenis drives scroll from its own rAF loop, so ask the engine for a frame
+  // from its callback. Never by dispatching a synthetic scroll event — Lenis
+  // listens for those, which loops straight back into here.
+  useLenis(() => {
+    nudgeScroll();
+  });
+
+  useEffect(() => {
+    if (lenis) refreshScroll();
+  }, [lenis]);
+
+  return null;
+}
+
 function ProgressBar() {
   const barRef = useRef<HTMLDivElement>(null);
-  useLenis((instance) => {
-    if (barRef.current) barRef.current.style.transform = `scaleX(${instance.progress})`;
-  });
+  useEffect(
+    () =>
+      subscribe((s) => {
+        if (barRef.current) barRef.current.style.transform = `scaleX(${s.page})`;
+      }),
+    [],
+  );
   return (
     <div
       className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 bg-fg/10"
       aria-hidden="true"
     >
-      <div ref={barRef} className="h-full origin-left bg-accent" style={{ transform: "scaleX(0)" }} />
+      <div
+        ref={barRef}
+        className="h-full origin-left bg-accent"
+        style={{ transform: "scaleX(0)" }}
+      />
     </div>
   );
 }
@@ -79,6 +108,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       }}
     >
       {reduce ? null : <GsapBridge />}
+      <ScrollEngine />
       <ProgressBar />
       {children}
     </ReactLenis>

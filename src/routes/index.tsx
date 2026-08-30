@@ -4,10 +4,17 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { toast } from "sonner";
 import { Atmosphere } from "@/components/atmosphere";
 import { HistoryRail } from "@/components/history-rail";
-import { AboutSection, AtlasSection, HowSection, LineageSection, ScrollCue } from "@/components/page-sections";
+import {
+  AboutSection,
+  AtlasSection,
+  HowSection,
+  LineageSection,
+  ScrollCue,
+} from "@/components/page-sections";
 import { ResultView } from "@/components/result-view";
 import { SearchDock } from "@/components/search-dock";
 import { SiteHeader } from "@/components/site-header";
+import { useTrackedSection } from "@/lib/use-scroll-reveal";
 import { hasOnboarded, Onboarding } from "@/components/onboarding";
 import { classifyTrack, transcribeClip } from "@/lib/classify";
 import { EXAMPLES } from "@/lib/constants";
@@ -35,6 +42,7 @@ function Home() {
   // `mode` only flips to "recording" after getUserMedia resolves, so it cannot
   // gate the mic button while the permission prompt is open. This can.
   const startingRef = useRef(false);
+  const toolRef = useTrackedSection<HTMLElement>("tool");
 
   useEffect(() => {
     setHistory(
@@ -52,10 +60,9 @@ function Home() {
   useEffect(() => {
     const hero = document.getElementById("tool");
     if (!hero) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setDocked(!entry.isIntersecting),
-      { threshold: 0.28 },
-    );
+    const observer = new IntersectionObserver(([entry]) => setDocked(!entry.isIntersecting), {
+      threshold: 0.28,
+    });
     observer.observe(hero);
     return () => observer.disconnect();
   }, []);
@@ -78,7 +85,8 @@ function Home() {
   const goResult = useCallback(() => {
     window.requestAnimationFrame(() => {
       if (lenis) lenis.scrollTo("#result", { offset: -96, duration: 1.15 });
-      else document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      else
+        document.getElementById("result")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [lenis]);
 
@@ -245,7 +253,7 @@ function Home() {
           }
         />
 
-        <section id="tool" className="hero-cluster flex min-h-dvh flex-col">
+        <section id="tool" ref={toolRef} className="hero-cluster flex min-h-dvh flex-col">
           <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Genre · Subgenre · Microgenre
@@ -279,7 +287,10 @@ function Home() {
         </section>
 
         {classification ? (
-          <section id="result" className="mx-auto flex min-h-dvh max-w-6xl scroll-mt-28 flex-col justify-center px-4 py-24 sm:px-6">
+          <section
+            id="result"
+            className="mx-auto flex min-h-dvh max-w-6xl scroll-mt-28 flex-col justify-center px-4 py-24 sm:px-6"
+          >
             <div className="flex flex-col gap-8">
               <ResultView
                 key={`${classification.title}-${classification.artist}`}
