@@ -1,5 +1,5 @@
 {
-  "name": "app-builder-workspace",
+  "name": "aural-audio-engine",
   "private": true,
   "sideEffects": false,
   "type": "module",
@@ -7,17 +7,11 @@
     "nf3": "0.3.17"
   },
   "scripts": {
-    "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
-    "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
-    "vercel-build": "npx vite build",
-    "db:migrate": "node scripts/migrate.mjs",
-    "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
-    "preview": "node scripts/with-app-env.mjs vite preview",
-    "preview:restart": "node scripts/preview.mjs restart",
-    "preview:stop": "node scripts/preview.mjs stop",
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/auth/gate-identity.test.ts src/lib/classify.test.ts src/lib/history.test.ts",
+    "test": "node --experimental-strip-types --test src/lib/classify.test.ts src/lib/history.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
