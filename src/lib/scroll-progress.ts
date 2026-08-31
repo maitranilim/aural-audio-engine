@@ -1,5 +1,5 @@
 /**
- * One rAF loop that turns scroll position into progress numbers.
+ * An event-driven rAF loop that turns scroll position into progress numbers.
  *
  * Everything scroll-driven on the page reads from here: reveals, the chapter
  * rails, the nav. Two reasons it is a single shared engine rather than a
@@ -122,9 +122,11 @@ function paintReveal(r: Reveal, p: number) {
 
 function tick() {
   frame = 0;
+  if (!running) return;
+
   const scroll = window.scrollY;
   if (dirty) measure();
-  else if (scroll === lastScroll) return schedule(false);
+  else if (scroll === lastScroll) return;
   lastScroll = scroll;
 
   const limit = maxScroll();
@@ -157,13 +159,11 @@ function tick() {
     state = { page, activeId, sections: next };
     for (const fn of listeners) fn(state);
   }
-
-  schedule(false);
 }
 
 function schedule(force: boolean) {
-  if (!running) return;
   if (force) dirty = true;
+  if (!running) return;
   if (!frame) frame = requestAnimationFrame(tick);
 }
 
@@ -211,7 +211,7 @@ export function getScrollState() {
 
 /** Ask for a frame — for scroll sources that do not emit a native scroll event. */
 export function nudgeScroll() {
-  schedule(false);
+  if (dirty || window.scrollY !== lastScroll) schedule(false);
 }
 
 /** Re-measure after a layout change the engine cannot see (content swapped in). */
@@ -222,12 +222,25 @@ export function refreshScroll() {
 export function startScrollEngine() {
   if (running) return () => {};
   running = true;
-  reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  reduced = motionQuery.matches;
   document.documentElement.classList.add("scroll-js");
 
   const onScroll = () => schedule(false);
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", onResize);
+
+  const onMotionChange = () => {
+    reduced = motionQuery.matches;
+    dirty = true;
+    lastScroll = -1;
+    schedule(true);
+  };
+  if (typeof motionQuery.addEventListener === "function") {
+    motionQuery.addEventListener("change", onMotionChange);
+  } else {
+    motionQuery.addListener(onMotionChange);
+  }
 
   const ro = new ResizeObserver(onResize);
   ro.observe(document.documentElement);
@@ -241,6 +254,11 @@ export function startScrollEngine() {
     ro.disconnect();
     window.removeEventListener("scroll", onScroll);
     window.removeEventListener("resize", onResize);
+    if (typeof motionQuery.removeEventListener === "function") {
+      motionQuery.removeEventListener("change", onMotionChange);
+    } else {
+      motionQuery.removeListener(onMotionChange);
+    }
     document.documentElement.classList.remove("scroll-js");
   };
 }

@@ -3,6 +3,7 @@ import { useLenis } from "lenis/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Reveal } from "@/components/reveal";
 import { EXAMPLES } from "@/lib/constants";
+import { scrollToId } from "@/lib/scroll-to";
 import { subscribe } from "@/lib/scroll-progress";
 import { useRevealChildren, useTrackedSection } from "@/lib/use-scroll-reveal";
 import { cn } from "@/lib/utils";
@@ -445,7 +446,6 @@ export function AtlasSection({
   onPick: (query: string) => void;
   disabled: boolean;
 }) {
-  const lenis = useLenis();
   const ref = useTrackedSection<HTMLElement>("atlas");
   return (
     <section
@@ -475,8 +475,6 @@ export function AtlasSection({
             type="button"
             onClick={() => {
               onPick(ex.q);
-              if (lenis) lenis.scrollTo("#result", { offset: -96, duration: 1.1 });
-              else document.getElementById("result")?.scrollIntoView({ behavior: "smooth" });
             }}
             disabled={disabled}
             className={cn(
@@ -529,8 +527,7 @@ export function ScrollCue({ target = "how" }: { target?: string }) {
     <button
       type="button"
       onClick={() => {
-        if (lenis) lenis.scrollTo(`#${target}`, { offset: -40, duration: 1.2 });
-        else document.getElementById(target)?.scrollIntoView({ behavior: "smooth" });
+        scrollToId(target, lenis, -40, 1.2);
       }}
       className="mx-auto flex min-h-11 flex-col items-center gap-2 text-[10px] font-medium uppercase tracking-[0.2em] text-muted"
     >

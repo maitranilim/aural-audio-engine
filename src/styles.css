@@ -114,6 +114,11 @@ html[data-theme="light"] {
   p {
     text-wrap: pretty;
   }
+
+  :where(a, button, input, textarea, select):focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
 }
 
 /* Liquid glass surfaces */
@@ -386,18 +391,18 @@ html[data-theme="light"] {
  */
 .scroll-js .reveal {
   --p: 0;
-  --reveal-edge: calc(var(--p) * 138%);
-  opacity: calc(0.06 + 0.94 * var(--p));
+  --reveal-edge: calc(20% + var(--p) * 118%);
+  opacity: calc(0.28 + 0.72 * var(--p));
   -webkit-mask-image: linear-gradient(
     96deg,
     #000 0%,
-    #000 calc(var(--reveal-edge) - 30%),
+    #000 calc(var(--reveal-edge) - 24%),
     transparent var(--reveal-edge)
   );
   mask-image: linear-gradient(
     96deg,
     #000 0%,
-    #000 calc(var(--reveal-edge) - 30%),
+    #000 calc(var(--reveal-edge) - 24%),
     transparent var(--reveal-edge)
   );
 }

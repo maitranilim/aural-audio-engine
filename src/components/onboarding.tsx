@@ -1,26 +1,8 @@
 import { Layers, Mic, Search } from "lucide-react";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Mark } from "@/components/logo";
+import { markOnboarded } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
-
-const KEY = "aural:onboarded:v1";
-
-export function hasOnboarded() {
-  if (typeof window === "undefined") return true;
-  try {
-    return window.localStorage.getItem(KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-export function markOnboarded() {
-  try {
-    window.localStorage.setItem(KEY, "1");
-  } catch {
-    /* quota */
-  }
-}
 
 const STEPS = [
   {
@@ -46,18 +28,36 @@ const STEPS = [
 export function Onboarding({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0);
   const nextRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+  const closingRef = useRef(false);
   const titleId = useId();
+  const bodyId = useId();
   const current = STEPS[step];
   const last = step === STEPS.length - 1;
   const Icon = current.icon;
 
   const finish = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
     markOnboarded();
     onDone();
     window.requestAnimationFrame(() => {
-      document.querySelector<HTMLInputElement>('input[aria-label="Song query"]')?.focus();
+      const opener = openerRef.current;
+      if (opener?.isConnected) {
+        opener.focus({ preventScroll: true });
+        return;
+      }
+      document
+        .querySelector<HTMLInputElement>('#tool input[name="query"]')
+        ?.focus({ preventScroll: true });
     });
   }, [onDone]);
+
+  useEffect(() => {
+    const active = document.activeElement;
+    openerRef.current = active instanceof HTMLElement && active !== document.body ? active : null;
+  }, []);
 
   useEffect(() => {
     nextRef.current?.focus();
@@ -78,17 +78,43 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     };
   }, [finish]);
 
+  const trapFocus = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== "Tab") return;
+    const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    if (!focusable?.length) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-bg/70 p-4 backdrop-blur-xl sm:items-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
+      aria-describedby={bodyId}
+      onKeyDown={trapFocus}
       onClick={(e) => {
         if (e.target === e.currentTarget) finish();
       }}
     >
-      <div className="glass-strong glass-sheen w-full max-w-lg rounded-[32px] p-6 sm:p-8">
+      <div
+        ref={dialogRef}
+        tabIndex={-1}
+        className="glass-strong glass-sheen w-full max-w-lg rounded-[32px] p-6 sm:p-8"
+      >
         <div className="flex items-center justify-between gap-3">
           <Mark className="size-9" />
           <button
@@ -110,7 +136,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         <h2 id={titleId} className="mt-3 font-display text-3xl font-semibold tracking-tight">
           {current.title}
         </h2>
-        <p className="mt-3 text-base leading-relaxed text-muted">{current.body}</p>
+        <p id={bodyId} className="mt-3 text-base leading-relaxed text-muted">
+          {current.body}
+        </p>
 
         {step === 2 ? (
           <div className="mt-6 flex flex-col gap-2">

@@ -1,7 +1,9 @@
+import { Search } from "lucide-react";
 import { useLenis } from "lenis/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { scrollToId } from "@/lib/scroll-to";
 import { subscribe } from "@/lib/scroll-progress";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +41,16 @@ export function SiteHeader({
   const go = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     setActive(id);
-    if (lenis) lenis.scrollTo(`#${id}`, { offset: -72, duration: 1.15 });
-    else document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    scrollToId(id, lenis, -72, 1.15);
+  };
+
+  const focusToolSearch = () => {
+    scrollToId("tool", lenis, -72, 0.75);
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLInputElement>('#tool input[name="query"]')
+        ?.focus({ preventScroll: true });
+    });
   };
 
   return (
@@ -62,7 +72,18 @@ export function SiteHeader({
           aria-hidden={!docked}
           inert={!docked ? true : undefined}
         >
-          <div className="mx-auto w-full max-w-xl px-2">{compactSearch}</div>
+          <div className="mx-auto w-full max-w-xl px-2">
+            <div className="hidden sm:block">{compactSearch}</div>
+            <button
+              type="button"
+              onClick={focusToolSearch}
+              aria-label="Focus song search"
+              className="glass-thin flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-3 text-sm font-medium text-muted transition-[color,background-color] duration-150 hover:bg-fg/10 hover:text-fg sm:hidden"
+            >
+              <Search className="size-4" aria-hidden="true" />
+              Search
+            </button>
+          </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
           <nav className="hidden items-center gap-1 text-xs font-medium text-muted sm:flex">

@@ -1,49 +1,43 @@
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ReactLenis, useLenis } from "lenis/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { nudgeScroll, refreshScroll, startScrollEngine, subscribe } from "@/lib/scroll-progress";
 
-gsap.registerPlugin(ScrollTrigger);
+const ATMOSPHERE_PARALLAX_OFFSETS = [18, -14, 10] as const;
 
-function prefersReduced() {
-  if (typeof window === "undefined") return true;
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-function GsapBridge() {
-  const lenis = useLenis();
-
+/**
+ * The glow's inner element owns the CSS drift transform. This outer layer is
+ * the only transform owner for scroll parallax, so the two effects cannot
+ * overwrite one another.
+ */
+function AtmosphereParallax({ disabled }: { disabled: boolean }) {
   useEffect(() => {
-    if (!lenis) return;
-    const onScroll = () => ScrollTrigger.update();
-    lenis.on("scroll", onScroll);
-    const onRefresh = () => lenis.resize();
-    ScrollTrigger.addEventListener("refresh", onRefresh);
-    ScrollTrigger.refresh();
-    return () => {
-      lenis.off("scroll", onScroll);
-      ScrollTrigger.removeEventListener("refresh", onRefresh);
+    const glows = Array.from(document.querySelectorAll<HTMLElement>("[data-atmosphere-parallax]"));
+    const reset = () => {
+      for (const glow of glows) {
+        glow.style.setProperty("--atmosphere-shift-y", "0%");
+      }
     };
-  }, [lenis]);
 
-  useEffect(() => {
-    const glows = gsap.utils.toArray<HTMLElement>(".atmosphere-glow");
-    if (!glows.length) return;
-    const tweens = glows.map((el, i) =>
-      gsap.to(el, {
-        yPercent: i === 0 ? 18 : i === 1 ? -14 : 10,
-        ease: "none",
-        scrollTrigger: {
-          trigger: document.documentElement,
-          start: "top top",
-          end: "bottom bottom",
-          scrub: 0.6,
-        },
-      }),
-    );
-    return () => tweens.forEach((t) => t.kill());
-  }, []);
+    if (disabled || glows.length === 0) {
+      reset();
+      return;
+    }
+
+    let lastPage = -1;
+    const unsubscribe = subscribe(({ page }) => {
+      if (page === lastPage) return;
+      lastPage = page;
+      glows.forEach((glow, index) => {
+        const offset = ATMOSPHERE_PARALLAX_OFFSETS[index] ?? 0;
+        glow.style.setProperty("--atmosphere-shift-y", `${page * offset}%`);
+      });
+    });
+
+    return () => {
+      unsubscribe();
+      reset();
+    };
+  }, [disabled]);
 
   return null;
 }
@@ -58,6 +52,9 @@ function ScrollEngine() {
   // from its callback. Never by dispatching a synthetic scroll event — Lenis
   // listens for those, which loops straight back into here.
   useLenis(() => {
+    // Lenis can advance without dispatching a native scroll event. nudgeScroll
+    // is intentionally a no-op while the position is unchanged, so this
+    // callback does not create a second idle animation loop.
     nudgeScroll();
   });
 
@@ -95,7 +92,21 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
   const [reduce, setReduce] = useState(true);
 
   useEffect(() => {
-    setReduce(prefersReduced());
+    const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduce(motionQuery.matches);
+    update();
+    if (typeof motionQuery.addEventListener === "function") {
+      motionQuery.addEventListener("change", update);
+    } else {
+      motionQuery.addListener(update);
+    }
+    return () => {
+      if (typeof motionQuery.removeEventListener === "function") {
+        motionQuery.removeEventListener("change", update);
+      } else {
+        motionQuery.removeListener(update);
+      }
+    };
   }, []);
 
   return (
@@ -105,9 +116,10 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
         lerp: reduce ? 1 : 0.085,
         smoothWheel: !reduce,
         syncTouch: false,
+        respectReducedMotion: true,
       }}
     >
-      {reduce ? null : <GsapBridge />}
+      <AtmosphereParallax disabled={reduce} />
       <ScrollEngine />
       <ProgressBar />
       {children}

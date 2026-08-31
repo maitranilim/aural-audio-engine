@@ -1,17 +1,6 @@
-import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useState } from "react";
+import { ThemeContext } from "@/lib/theme-context";
 import { applyTheme, readTheme, type Theme } from "@/lib/theme";
-
-const ThemeContext = createContext<{
-  theme: Theme;
-  toggle: () => void;
-}>({
-  theme: "dark",
-  toggle: () => {},
-});
-
-export function useTheme() {
-  return useContext(ThemeContext);
-}
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("dark");

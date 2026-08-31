@@ -2,19 +2,15 @@ import { cn } from "@/lib/utils";
 
 export function Mark({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 32 32"
-      className={cn("size-8", className)}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 32 32" className={cn("size-8", className)} aria-hidden="true">
       <rect
         x="6"
         y="5"
         width="16"
         height="20"
         rx="4"
-        fill="rgba(255,255,255,0.08)"
-        stroke="rgba(255,255,255,0.45)"
+        fill="var(--aural-veil)"
+        stroke="var(--aural-line)"
         strokeWidth="1.2"
       />
       <rect
@@ -23,8 +19,8 @@ export function Mark({ className }: { className?: string }) {
         width="16"
         height="20"
         rx="4"
-        fill="rgba(159,214,207,0.18)"
-        stroke="rgba(159,214,207,0.7)"
+        fill="color-mix(in srgb, var(--aural-accent) 18%, transparent)"
+        stroke="var(--aural-accent)"
         strokeWidth="1.2"
       />
       <rect
@@ -33,8 +29,8 @@ export function Mark({ className }: { className?: string }) {
         width="16"
         height="20"
         rx="4"
-        fill="rgba(255,255,255,0.04)"
-        stroke="rgba(244,246,248,0.85)"
+        fill="color-mix(in srgb, var(--aural-bg-elevated) 70%, transparent)"
+        stroke="var(--aural-fg)"
         strokeWidth="1.2"
       />
     </svg>

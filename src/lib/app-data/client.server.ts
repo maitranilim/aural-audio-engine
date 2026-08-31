@@ -211,7 +211,9 @@ function tokenIdentityKey(token: string): string {
             .digest("base64url");
         }
       }
-    } catch {}
+    } catch {
+      // Malformed identity claims fall back to the opaque token fingerprint.
+    }
   }
   return createHash("sha256").update(token).digest("base64url");
 }
