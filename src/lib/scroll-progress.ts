@@ -22,6 +22,7 @@ const REVEAL_START_VH = 0.9; // element top enters here -> progress 0
 const REVEAL_END_VH = 0.44; // element top reaches here -> progress 1
 const STAGGER_VH = 0.06; // per-index offset inside a group
 const READ_LINE_VH = 0.5; // the line a section is measured against
+const ROUNDING_PRECISION = 100; // Round to 1% granularity (0.01)
 
 export type RevealOptions = { stagger?: number };
 
@@ -59,6 +60,7 @@ let running = false;
 let reduced = false;
 let lastScroll = -1;
 let dirty = true;
+let remeasureTimeoutId: ReturnType<typeof setTimeout> | undefined;
 let state: ScrollState = { page: 0, activeId: null, sections: {} };
 
 function clamp01(n: number) {
@@ -95,19 +97,43 @@ function progressAt(scroll: number, top: number, offsetVh: number) {
   return clamp01((scroll - start) / (end - start));
 }
 
+/**
+ * Batch DOM reads together to minimize reflows.
+ * Collect all read operations first, then apply writes.
+ */
 function measure() {
-  for (const r of reveals) r.top = docTop(r.el);
-  for (const s of sections.values()) {
-    s.top = docTop(s.el);
-    s.height = s.el.offsetHeight;
+  // Phase 1: Batch all DOM reads (triggers one reflow)
+  const revealData = new Map<Reveal, number>();
+  const sectionData = new Map<string, { top: number; height: number }>();
+
+  for (const r of reveals) {
+    revealData.set(r, docTop(r.el));
   }
+  for (const s of sections.values()) {
+    sectionData.set(s.id, {
+      top: docTop(s.el),
+      height: s.el.offsetHeight,
+    });
+  }
+
+  // Phase 2: Apply all writes (no reflow needed)
+  for (const [r, top] of revealData) {
+    r.top = top;
+  }
+  for (const [id, data] of sectionData) {
+    const s = sections.get(id);
+    if (s) {
+      s.top = data.top;
+      s.height = data.height;
+    }
+  }
+
   dirty = false;
 }
 
 function paintReveal(r: Reveal, p: number) {
-  // Round before comparing: sub-percent changes are invisible and writing them
-  // every frame is what makes a scroll-driven page feel expensive.
-  const q = Math.round(p * 100) / 100;
+  // Round to 1% granularity to avoid imperceptible CSS recalculations
+  const q = Math.round(p * ROUNDING_PRECISION) / ROUNDING_PRECISION;
   if (q === r.written) return;
   r.written = q;
   r.el.style.setProperty("--p", String(q));
@@ -150,13 +176,22 @@ function tick() {
     else if (p >= 1) activeId = s.id;
   }
 
-  const page = limit > 0 ? clamp01(scroll / limit) : 0;
+  // Round page progress to reduce listener updates
+  const page = limit > 0 ? Math.round(clamp01(scroll / limit) * ROUNDING_PRECISION) / ROUNDING_PRECISION : 0;
+
+  // Round section progress before comparison
+  const nextRounded: Record<string, number> = {};
+  for (const [key, val] of Object.entries(next)) {
+    nextRounded[key] = Math.round(val * ROUNDING_PRECISION) / ROUNDING_PRECISION;
+  }
+
   const changed =
     page !== state.page ||
     activeId !== state.activeId ||
-    Object.keys(next).some((k) => next[k] !== state.sections[k]);
+    Object.keys(nextRounded).some((k) => nextRounded[k] !== state.sections[k]);
+
   if (changed) {
-    state = { page, activeId, sections: next };
+    state = { page, activeId, sections: nextRounded };
     for (const fn of listeners) fn(state);
   }
 }
@@ -171,6 +206,19 @@ function onResize() {
   dirty = true;
   lastScroll = -1;
   schedule(true);
+}
+
+/**
+ * Debounced remeasure triggered by ResizeObserver to avoid thrashing
+ * on rapid layout changes.
+ */
+function scheduleRemeasure() {
+  if (remeasureTimeoutId) clearTimeout(remeasureTimeoutId);
+  remeasureTimeoutId = setTimeout(() => {
+    dirty = true;
+    schedule(false);
+    remeasureTimeoutId = undefined;
+  }, 100);
 }
 
 export function registerReveal(el: HTMLElement, opts: RevealOptions = {}) {
@@ -203,6 +251,26 @@ export function subscribe(fn: Listener) {
   return () => {
     listeners.delete(fn);
   };
+}
+
+/**
+ * Subscribe with automatic throttling to reduce update frequency.
+ * Useful for non-critical visual updates.
+ */
+export function subscribeThrottled(fn: Listener, delayMs: number = 16) {
+  let pending = false;
+  let timeoutId: ReturnType<typeof setTimeout>;
+
+  const throttledFn = (state: ScrollState) => {
+    if (pending) return;
+    pending = true;
+    fn(state);
+    timeoutId = setTimeout(() => {
+      pending = false;
+    }, delayMs);
+  };
+
+  return subscribe(throttledFn);
 }
 
 export function getScrollState() {
@@ -242,7 +310,7 @@ export function startScrollEngine() {
     motionQuery.addListener(onMotionChange);
   }
 
-  const ro = new ResizeObserver(onResize);
+  const ro = new ResizeObserver(scheduleRemeasure);
   ro.observe(document.documentElement);
 
   schedule(true);
@@ -251,6 +319,7 @@ export function startScrollEngine() {
     running = false;
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
+    if (remeasureTimeoutId) clearTimeout(remeasureTimeoutId);
     ro.disconnect();
     window.removeEventListener("scroll", onScroll);
     window.removeEventListener("resize", onResize);
