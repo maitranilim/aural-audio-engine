@@ -1,6 +1,6 @@
 import { ReactLenis, useLenis } from "lenis/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { nudgeScroll, refreshScroll, startScrollEngine, subscribe } from "@/lib/scroll-progress";
+import { nudgeScroll, refreshScroll, startScrollEngine, subscribeThrottled } from "@/lib/scroll-progress";
 
 const ATMOSPHERE_PARALLAX_OFFSETS = [18, -14, 10] as const;
 
@@ -8,30 +8,44 @@ const ATMOSPHERE_PARALLAX_OFFSETS = [18, -14, 10] as const;
  * The glow's inner element owns the CSS drift transform. This outer layer is
  * the only transform owner for scroll parallax, so the two effects cannot
  * overwrite one another.
+ *
+ * Optimized to cache glows and round scroll values to avoid repeated queries
+ * and imperceptible CSS updates.
  */
 function AtmosphereParallax({ disabled }: { disabled: boolean }) {
+  const glowsRef = useRef<HTMLElement[]>([]);
+  const lastPageRef = useRef(-1);
+
   useEffect(() => {
-    const glows = Array.from(document.querySelectorAll<HTMLElement>("[data-atmosphere-parallax]"));
+    // Cache glows once instead of querying every render
+    glowsRef.current = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-atmosphere-parallax]")
+    );
+
     const reset = () => {
-      for (const glow of glows) {
+      for (const glow of glowsRef.current) {
         glow.style.setProperty("--atmosphere-shift-y", "0%");
       }
     };
 
-    if (disabled || glows.length === 0) {
+    if (disabled || glowsRef.current.length === 0) {
       reset();
       return;
     }
 
-    let lastPage = -1;
-    const unsubscribe = subscribe(({ page }) => {
-      if (page === lastPage) return;
-      lastPage = page;
-      glows.forEach((glow, index) => {
-        const offset = ATMOSPHERE_PARALLAX_OFFSETS[index] ?? 0;
-        glow.style.setProperty("--atmosphere-shift-y", `${page * offset}%`);
-      });
-    });
+    // Use throttled subscription to reduce update frequency for parallax
+    const unsubscribe = subscribeThrottled(({ page }) => {
+      // Round to 1% granularity to avoid micro-updates
+      const rounded = Math.round(page * 100) / 100;
+      if (rounded === lastPageRef.current) return;
+      lastPageRef.current = rounded;
+
+      for (let i = 0; i < glowsRef.current.length; i++) {
+        const glow = glowsRef.current[i];
+        const offset = ATMOSPHERE_PARALLAX_OFFSETS[i] ?? 0;
+        glow.style.setProperty("--atmosphere-shift-y", `${rounded * offset}%`);
+      }
+    }, 16);
 
     return () => {
       unsubscribe();
@@ -69,9 +83,9 @@ function ProgressBar() {
   const barRef = useRef<HTMLDivElement>(null);
   useEffect(
     () =>
-      subscribe((s) => {
+      subscribeThrottled((s) => {
         if (barRef.current) barRef.current.style.transform = `scaleX(${s.page})`;
-      }),
+      }, 16),
     [],
   );
   return (
