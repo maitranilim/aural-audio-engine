@@ -1,11 +1,10 @@
 import { ChevronDown, Keyboard, Mic, Pointer } from "lucide-react";
 import { useLenis } from "lenis/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Reveal } from "@/components/reveal";
 import { EXAMPLES } from "@/lib/constants";
 import { scrollToId } from "@/lib/scroll-to";
 import { subscribe } from "@/lib/scroll-progress";
-import { useRevealChildren, useTrackedSection } from "@/lib/use-scroll-reveal";
+import { useTrackedSection } from "@/lib/use-scroll-reveal";
 import { cn } from "@/lib/utils";
 
 const HOW_BEATS = [
@@ -88,12 +87,7 @@ function useChapterBeat(id: string, length: number) {
 }
 
 function Scene({ children }: { children: ReactNode }) {
-  const ref = useRevealChildren<HTMLDivElement>();
-  return (
-    <div ref={ref} className="scene">
-      {children}
-    </div>
-  );
+  return <div className="scene">{children}</div>;
 }
 
 function Rail({
@@ -453,25 +447,19 @@ export function AtlasSection({
       ref={ref}
       className="mx-auto min-h-dvh max-w-6xl scroll-mt-24 px-4 py-32 sm:px-6"
     >
-      <Reveal as="p" className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
+      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
         Atlas
-      </Reveal>
-      <Reveal
-        as="h2"
-        stagger={1}
-        className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-6xl"
-      >
+      </p>
+      <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-6xl">
         Try a known recording
-      </Reveal>
-      <Reveal as="p" stagger={2} className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
+      </h2>
+      <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
         Each plate maps a real track. Results land under the tool, then you can keep scrolling.
-      </Reveal>
+      </p>
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {EXAMPLES.map((ex, i) => (
-          <Reveal
-            as="button"
+          <button
             key={ex.q}
-            stagger={3 + i}
             type="button"
             onClick={() => {
               onPick(ex.q);
@@ -490,7 +478,7 @@ export function AtlasSection({
               {ex.label}
             </div>
             <div className="mt-2 text-sm text-muted">Map this lineage</div>
-          </Reveal>
+          </button>
         ))}
       </div>
     </section>
@@ -503,20 +491,16 @@ export function AboutSection() {
       id="about"
       className="mx-auto flex min-h-[70vh] max-w-6xl flex-col justify-center px-4 py-24 sm:px-6"
     >
-      <Reveal as="p" className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
+      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
         About
-      </Reveal>
-      <Reveal
-        as="h2"
-        stagger={1}
-        className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-6xl"
-      >
+      </p>
+      <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-6xl">
         Built as a listening instrument
-      </Reveal>
-      <Reveal as="p" stagger={2} className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
+      </h2>
+      <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
         Aural is a single-page taxonomy tool: name a song, read the lineage, keep scrolling. No
         accounts. Recent maps stay on this device.
-      </Reveal>
+      </p>
     </section>
   );
 }

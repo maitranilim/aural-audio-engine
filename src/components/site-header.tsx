@@ -1,10 +1,10 @@
 import { Search } from "lucide-react";
 import { useLenis } from "lenis/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { scrollToId } from "@/lib/scroll-to";
-import { subscribe } from "@/lib/scroll-progress";
+import { subscribeActiveSection } from "@/lib/scroll-progress";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -23,17 +23,13 @@ export function SiteHeader({
 }) {
   const lenis = useLenis();
   const [active, setActive] = useState("tool");
-  const fills = useRef(new Map<string, HTMLElement>());
 
-  // Progress writes straight to the DOM; only the active id — which changes a
-  // handful of times per page — is allowed to re-render React.
+  // The nav updates only when the reading line enters a different section.
+  // Continuous section progress is reserved for the chapter rails.
   useEffect(
     () =>
-      subscribe((state) => {
-        for (const [id, el] of fills.current) {
-          el.style.setProperty("--track", String(state.sections[id] ?? 0));
-        }
-        if (state.activeId) setActive((prev) => (prev === state.activeId ? prev : state.activeId!));
+      subscribeActiveSection((activeId) => {
+        if (activeId) setActive((prev) => (prev === activeId ? prev : activeId));
       }),
     [],
   );
@@ -56,8 +52,8 @@ export function SiteHeader({
   return (
     <header
       className={cn(
-        "fixed inset-x-0 top-0 z-40 border-b transition-[background-color,border-color,backdrop-filter] duration-300",
-        docked ? "border-line/60 bg-bg/70 backdrop-blur-xl" : "border-transparent bg-transparent",
+        "fixed inset-x-0 top-0 z-40 border-b transition-[background-color,border-color] duration-300",
+        docked ? "border-line/60 bg-bg/95" : "border-transparent bg-transparent",
       )}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
@@ -92,14 +88,10 @@ export function SiteHeader({
                 key={l.id}
                 href={`#${l.id}`}
                 onClick={go(l.id)}
-                aria-current={active === l.id ? "page" : undefined}
-                ref={(node) => {
-                  if (node) fills.current.set(l.id, node);
-                  else fills.current.delete(l.id);
-                }}
+                aria-current={active === l.id ? "location" : undefined}
                 className={cn(
-                  "nav-track rounded-full px-3 py-2 transition-[color] duration-200",
-                  active === l.id ? "text-fg" : "hover:text-fg",
+                  "rounded-full px-3 py-2 transition-[background-color,color] duration-200",
+                  active === l.id ? "bg-fg text-bg" : "hover:bg-fg/10 hover:text-fg",
                 )}
               >
                 {l.label}

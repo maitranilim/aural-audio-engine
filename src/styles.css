@@ -313,12 +313,10 @@ html[data-theme="light"] {
   from {
     opacity: 0;
     transform: translateY(12px);
-    filter: blur(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 
@@ -346,8 +344,7 @@ html[data-theme="light"] {
   top: 5.75rem;
   z-index: 20;
   padding: 0.75rem 1rem 0.5rem;
-  background: color-mix(in srgb, var(--color-bg) 78%, transparent);
-  backdrop-filter: blur(16px);
+  background: color-mix(in srgb, var(--color-bg) 95%, transparent);
 }
 
 @media (min-width: 768px) {
@@ -356,7 +353,6 @@ html[data-theme="light"] {
     align-self: start;
     padding: 1.5rem 1rem 1.5rem 1.5rem;
     background: transparent;
-    backdrop-filter: none;
   }
 }
 
@@ -376,64 +372,6 @@ html[data-theme="light"] {
   50% {
     opacity: 0;
   }
-}
-
-/*
- * Scroll-scrubbed reveal. `--p` is written by the scroll engine (0 -> 1) and
- * everything here is a pure function of it, so the element is exactly as
- * revealed as the reader is far through it.
- *
- * No transform: the element never moves, a soft mask edge sweeps across it.
- * Sliding content up from below is what made the page feel like it was
- * catching up with the scroll instead of being driven by it.
- *
- * Only styled once the engine is live, so a no-JS render shows everything.
- */
-.scroll-js .reveal {
-  --p: 0;
-  --reveal-edge: calc(20% + var(--p) * 118%);
-  opacity: calc(0.28 + 0.72 * var(--p));
-  -webkit-mask-image: linear-gradient(
-    96deg,
-    #000 0%,
-    #000 calc(var(--reveal-edge) - 24%),
-    transparent var(--reveal-edge)
-  );
-  mask-image: linear-gradient(
-    96deg,
-    #000 0%,
-    #000 calc(var(--reveal-edge) - 24%),
-    transparent var(--reveal-edge)
-  );
-}
-
-/*
- * Finished elements drop the mask entirely. This is the fix for the closing
- * section sitting permanently veiled: a completed reveal is plain opaque
- * content, never a mask that stopped a few percent short.
- */
-.scroll-js .reveal[data-reveal="done"] {
-  opacity: 1;
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-
-/* Nav pill that fills with how far through its section you are. */
-.nav-track {
-  position: relative;
-  isolation: isolate;
-}
-
-.nav-track::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  background: color-mix(in srgb, var(--aural-fg) 12%, transparent);
-  transform: scaleX(var(--track, 0));
-  transform-origin: left center;
-  transition: opacity 200ms ease;
 }
 
 .chapter-progress {
@@ -487,17 +425,8 @@ html[data-theme="light"] {
     animation: none !important;
   }
 
-  .stagger-in > *,
-  .scroll-js .reveal,
-  .scroll-js .reveal[data-reveal="live"] {
+  .stagger-in > * {
     opacity: 1;
     transform: none;
-    filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
-  .nav-track::before {
-    transition: none;
   }
 }

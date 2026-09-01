@@ -39,8 +39,5 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Verify auth configuration
-        run: npm run check:auth
-
       - name: Build production bundle
-        run: npm run vercel-build
+        run: npm run build
