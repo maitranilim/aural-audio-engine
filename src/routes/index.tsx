@@ -313,6 +313,22 @@ function Home() {
     toast.success(wasSaved ? "Removed from saved mappings." : "Saved for your next visit.");
   }, [catalog, classification, query, saved]);
 
+  const openStoredMapping = useCallback(
+    (item: HistoryItem) => {
+      setQuery(item.query);
+      setClassification(ensureDistinct(item.classification));
+      setCatalog(item.catalog);
+      setErrorMessage(null);
+      goResult();
+    },
+    [goResult],
+  );
+
+  const removeStoredMapping = useCallback((item: HistoryItem) => {
+    setSaved(removeSaved(item));
+    toast.success("Removed from saved mappings.");
+  }, []);
+
   return (
     <main className="relative min-h-dvh overflow-x-hidden">
       <Atmosphere genre={classification?.genre} />
@@ -359,6 +375,15 @@ function Home() {
                 </button>
               ))}
             </div>
+            {!classification && saved.length > 0 ? (
+              <div className="mt-7">
+                <SavedRail
+                  items={saved}
+                  onPick={openStoredMapping}
+                  onRemove={removeStoredMapping}
+                />
+              </div>
+            ) : null}
           </div>
           <div className="mt-auto pb-8">
             <ScrollCue target={classification ? "result" : "how"} />
@@ -441,17 +466,8 @@ function Home() {
               ) : null}
               <SavedRail
                 items={saved}
-                onPick={(item) => {
-                  setQuery(item.query);
-                  setClassification(ensureDistinct(item.classification));
-                  setCatalog(item.catalog);
-                  setErrorMessage(null);
-                  goResult();
-                }}
-                onRemove={(item) => {
-                  setSaved(removeSaved(item));
-                  toast.success("Removed from saved mappings.");
-                }}
+                onPick={openStoredMapping}
+                onRemove={removeStoredMapping}
               />
               <HistoryRail
                 items={history}
