@@ -524,7 +524,12 @@ function Home() {
 
         <footer className="pb-16 text-center text-xs text-subtle">Made by Nilim</footer>
       </div>
-      {tour ? <Onboarding onDone={() => setTour(false)} /> : null}
+      {tour ? (
+        <Onboarding
+          onDone={() => setTour(false)}
+          onTryExample={() => void runClassify(EXAMPLES[0].q)}
+        />
+      ) : null}
     </main>
   );
 }

@@ -1,99 +1,67 @@
-import { Layers, Mic, Search } from "lucide-react";
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { ArrowRight, Layers, Search, X } from "lucide-react";
+import { useCallback, useEffect, useId, useRef } from "react";
 import { Mark } from "@/components/logo";
 import { markOnboarded } from "@/lib/onboarding";
-import { cn } from "@/lib/utils";
 
-const STEPS = [
-  {
-    icon: Layers,
-    kicker: "What this is",
-    title: "Aural maps a song to its lineage.",
-    body: "Every track sits on three rungs: genre, subgenre, then the microgenre scene. Those three labels are never the same word twice.",
-  },
-  {
-    icon: Search,
-    kicker: "How to use it",
-    title: "Name it. Speak it. Or tap a chip.",
-    body: "The mapper stays at the top of the page. Type a title, tap the mic and say the song, or pick a known recording from the atlas.",
-  },
-  {
-    icon: Mic,
-    kicker: "The three rungs",
-    title: "Broad, then family, then scene.",
-    body: "Lean On is EDM, then tropical house, then moombahton — not Dance / Dance / Dance. That split is the whole point.",
-  },
-] as const;
-
-export function Onboarding({ onDone }: { onDone: () => void }) {
-  const [step, setStep] = useState(0);
-  const nextRef = useRef<HTMLButtonElement>(null);
+export function Onboarding({
+  onDone,
+  onTryExample,
+}: {
+  onDone: () => void;
+  onTryExample: () => void;
+}) {
   const dialogRef = useRef<HTMLDivElement>(null);
-  const openerRef = useRef<HTMLElement | null>(null);
+  const primaryRef = useRef<HTMLButtonElement>(null);
   const closingRef = useRef(false);
   const titleId = useId();
   const bodyId = useId();
-  const current = STEPS[step];
-  const last = step === STEPS.length - 1;
-  const Icon = current.icon;
 
-  const finish = useCallback(() => {
-    if (closingRef.current) return;
-    closingRef.current = true;
-    markOnboarded();
-    onDone();
-    window.requestAnimationFrame(() => {
-      const opener = openerRef.current;
-      if (opener?.isConnected) {
-        opener.focus({ preventScroll: true });
-        return;
-      }
-      document
-        .querySelector<HTMLInputElement>('#tool input[name="query"]')
-        ?.focus({ preventScroll: true });
-    });
-  }, [onDone]);
-
-  useEffect(() => {
-    const active = document.activeElement;
-    openerRef.current = active instanceof HTMLElement && active !== document.body ? active : null;
-  }, []);
+  const finish = useCallback(
+    (next?: () => void) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      markOnboarded();
+      onDone();
+      window.requestAnimationFrame(() => {
+        if (next) {
+          next();
+          return;
+        }
+        document
+          .querySelector<HTMLInputElement>('#tool input[name="query"]')
+          ?.focus({ preventScroll: true });
+      });
+    },
+    [onDone],
+  );
 
   useEffect(() => {
-    nextRef.current?.focus();
-  }, [step]);
-
-  useEffect(() => {
-    const prev = document.body.style.overflow;
+    primaryRef.current?.focus();
+    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") finish();
-      if (e.key === "ArrowRight") setStep((s) => Math.min(STEPS.length - 1, s + 1));
-      if (e.key === "ArrowLeft") setStep((s) => Math.max(0, s - 1));
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") finish();
     };
     window.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKey);
     };
   }, [finish]);
 
-  const trapFocus = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.key !== "Tab") return;
+  const trapFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "Tab") return;
     const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
     );
-    if (!focusable?.length) {
-      e.preventDefault();
-      return;
-    }
+    if (!focusable?.length) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault();
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
       last.focus();
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
       first.focus();
     }
   };
@@ -106,95 +74,78 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       aria-labelledby={titleId}
       aria-describedby={bodyId}
       onKeyDown={trapFocus}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) finish();
-      }}
     >
       <div
         ref={dialogRef}
-        tabIndex={-1}
         className="glass-strong glass-sheen w-full max-w-lg rounded-[32px] p-6 sm:p-8"
       >
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-between">
           <Mark className="size-9" />
           <button
             type="button"
-            onClick={finish}
-            className="h-11 rounded-full px-4 text-sm text-muted transition-[color] duration-150 hover:text-fg"
+            onClick={() => finish()}
+            aria-label="Close introduction and search"
+            className="flex size-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-fg/5 hover:text-fg"
           >
-            Skip
+            <X className="size-4" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="mt-8 flex size-12 items-center justify-center rounded-2xl bg-accent/15 text-accent">
-          <Icon className="size-5" />
+        <div className="mt-7 flex size-12 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+          <Layers className="size-5" aria-hidden="true" />
         </div>
-
         <p className="mt-5 text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
-          {current.kicker}
+          Hear the hierarchy
         </p>
         <h2 id={titleId} className="mt-3 font-display text-3xl font-semibold tracking-tight">
-          {current.title}
+          One song. Three useful levels.
         </h2>
         <p id={bodyId} className="mt-3 text-base leading-relaxed text-muted">
-          {current.body}
+          Aural turns a title into genre, subgenre, and microgenre—then lets you save and compare
+          the result. See the idea with one proven track or start with your own.
         </p>
 
-        {step === 2 ? (
-          <div className="mt-6 flex flex-col gap-2">
-            <Line preview="Genre" value="EDM" />
-            <Line preview="Subgenre" value="Tropical house" />
-            <Line preview="Microgenre" value="Moombahton" />
-          </div>
-        ) : null}
+        <div className="mt-6 flex flex-col gap-2">
+          <Line label="Genre" value="EDM" />
+          <Line label="Subgenre" value="Tropical house" />
+          <Line label="Microgenre" value="Moombahton" accent />
+        </div>
 
-        <div className="mt-8 flex items-center justify-between gap-3">
-          <div className="flex gap-1.5" aria-hidden="true">
-            {STEPS.map((_, i) => (
-              <span
-                key={i}
-                className={cn(
-                  "h-1.5 rounded-full transition-[width,background-color] duration-200",
-                  i === step ? "w-6 bg-accent" : "w-1.5 bg-fg/20",
-                )}
-              />
-            ))}
-          </div>
-          <div className="flex gap-2">
-            {step > 0 ? (
-              <button
-                type="button"
-                onClick={() => setStep((s) => s - 1)}
-                className="glass-thin h-11 rounded-full px-5 text-sm text-fg transition-[scale] duration-150 active:scale-[0.96]"
-              >
-                Back
-              </button>
-            ) : null}
-            <button
-              ref={nextRef}
-              type="button"
-              onClick={() => {
-                if (last) finish();
-                else setStep((s) => s + 1);
-              }}
-              className="h-11 rounded-full bg-fg px-5 text-sm font-medium text-bg transition-[scale] duration-150 active:scale-[0.96]"
-            >
-              {last ? "Start mapping" : "Next"}
-            </button>
-          </div>
+        <div className="mt-8 grid gap-2 sm:grid-cols-2">
+          <button
+            ref={primaryRef}
+            type="button"
+            onClick={() => finish(onTryExample)}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-fg px-5 text-sm font-medium text-bg transition-transform active:scale-[0.97]"
+          >
+            Try Lean On
+            <ArrowRight className="size-4" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => finish()}
+            className="glass-thin flex min-h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-fg transition-transform active:scale-[0.97]"
+          >
+            <Search className="size-4" aria-hidden="true" />
+            Use my song
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function Line({ preview, value }: { preview: string; value: string }) {
+function Line({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
     <div className="glass-thin flex items-baseline justify-between rounded-2xl px-4 py-3">
       <span className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">
-        {preview}
+        {label}
       </span>
-      <span className="font-display text-lg font-semibold tracking-tight">{value}</span>
+      <span
+        className={`font-display text-lg font-semibold tracking-tight ${accent ? "text-accent" : ""}`}
+      >
+        {value}
+      </span>
     </div>
   );
 }
