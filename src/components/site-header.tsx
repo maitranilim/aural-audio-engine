@@ -17,9 +17,11 @@ const LINKS = [
 export function SiteHeader({
   docked,
   compactSearch,
+  savedMenu,
 }: {
   docked: boolean;
   compactSearch?: ReactNode;
+  savedMenu?: ReactNode;
 }) {
   const lenis = useLenis();
   const [active, setActive] = useState("tool");
@@ -57,6 +59,7 @@ export function SiteHeader({
       )}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+        {savedMenu}
         <a href="#tool" onClick={go("tool")} className="min-h-11 shrink-0">
           <Wordmark />
         </a>

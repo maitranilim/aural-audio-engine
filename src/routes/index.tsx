@@ -14,7 +14,7 @@ import {
   ScrollCue,
 } from "@/components/page-sections";
 import { ResultView } from "@/components/result-view";
-import { SavedRail } from "@/components/saved-rail";
+import { SavedMenu } from "@/components/saved-menu";
 import { SearchDock } from "@/components/search-dock";
 import { SiteHeader } from "@/components/site-header";
 import { useTrackedSection } from "@/lib/use-scroll-reveal";
@@ -361,6 +361,13 @@ function Home() {
       <div className="relative z-10">
         <SiteHeader
           docked={docked}
+          savedMenu={
+            <SavedMenu
+              items={saved}
+              onPick={openStoredMapping}
+              onRemove={removeStoredMapping}
+            />
+          }
           compactSearch={
             <SearchDock
               value={query}
@@ -400,15 +407,6 @@ function Home() {
                 </button>
               ))}
             </div>
-            {!classification && saved.length > 0 ? (
-              <div className="mt-7">
-                <SavedRail
-                  items={saved}
-                  onPick={openStoredMapping}
-                  onRemove={removeStoredMapping}
-                />
-              </div>
-            ) : null}
           </div>
           <div className="mt-auto pb-8">
             <ScrollCue target={classification ? "result" : "how"} />
@@ -490,11 +488,6 @@ function Home() {
                   onClear={clearComparison}
                 />
               ) : null}
-              <SavedRail
-                items={saved}
-                onPick={openStoredMapping}
-                onRemove={removeStoredMapping}
-              />
               <HistoryRail
                 items={history}
                 onPick={(item) => {
