@@ -80,15 +80,19 @@ export function ResultView({
   const [feedback, setFeedback] = useState<"copied" | "shared" | "error" | null>(null);
   const [artFailed, setArtFailed] = useState(false);
   const lineage = ensureDistinct(classification);
-  const art = classification.found && !artFailed && catalog?.artworkUrl ? catalog.artworkUrl : null;
-  const preview = classification.found ? catalog?.previewUrl : null;
+  const hasCatalogMatch = catalog !== null;
+  const art = !artFailed && catalog?.artworkUrl ? catalog.artworkUrl : null;
+  const preview = catalog?.previewUrl ?? null;
   const title = lineage.title || "Unknown title";
   const artist = lineage.artist || "Unknown artist";
   const path = `${lineage.genre} → ${lineage.subgenre} → ${lineage.microgenre}`;
   const isCurated = classification.rationale.startsWith("Curated Aural example:");
+  const isCatalogEstimate = classification.rationale.startsWith("Catalog-only result:");
   const provenance = isCurated
     ? "Curated offline example"
-    : classification.found
+    : isCatalogEstimate
+      ? "Catalog match · taxonomy estimate"
+      : classification.found
       ? "Classifier + catalog match"
       : "Taxonomy estimate · recording unconfirmed";
 
@@ -355,8 +359,10 @@ export function ResultView({
         ) : null}
 
         {!classification.found ? (
-          <p className="mt-6 text-sm text-danger">
-            Couldn’t lock a specific recording — taxonomy is a best-effort read of the query.
+          <p className={`mt-6 text-sm ${hasCatalogMatch ? "text-muted" : "text-danger"}`}>
+            {hasCatalogMatch
+              ? "Recording matched in the public catalog. The taxonomy remains a low-confidence estimate."
+              : "Couldn’t lock a specific recording — taxonomy is a best-effort read of the query."}
           </p>
         ) : null}
       </section>
