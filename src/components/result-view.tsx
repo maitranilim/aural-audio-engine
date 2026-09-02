@@ -1,4 +1,11 @@
-import { Check, Copy, GitCompareArrows, Share2 } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Check,
+  Copy,
+  GitCompareArrows,
+  Share2,
+} from "lucide-react";
 import { useState } from "react";
 import { PreviewPlayer } from "@/components/preview-player";
 import type { CatalogHit, Classification } from "@/lib/types";
@@ -58,6 +65,8 @@ export function ResultView({
   onSimilar,
   onCompare,
   isCompareBase = false,
+  onToggleSaved,
+  isSaved = false,
 }: {
   classification: Classification;
   catalog: CatalogHit | null;
@@ -65,6 +74,8 @@ export function ResultView({
   onSimilar: (query: string) => void;
   onCompare: () => void;
   isCompareBase?: boolean;
+  onToggleSaved: () => void;
+  isSaved?: boolean;
 }) {
   const [feedback, setFeedback] = useState<"copied" | "shared" | "error" | null>(null);
   const [artFailed, setArtFailed] = useState(false);
@@ -181,6 +192,25 @@ export function ResultView({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">Lineage</p>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onToggleSaved}
+              aria-pressed={isSaved}
+              aria-label={isSaved ? "Remove this mapping from saved" : "Save this mapping"}
+              className={cn(
+                "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
+                "glass-thin transition-[scale,color,background-color] duration-150 ease-out",
+                "active:scale-[0.96]",
+                isSaved ? "bg-accent/15 text-accent" : "text-muted hover:text-fg",
+              )}
+            >
+              {isSaved ? (
+                <BookmarkCheck className="size-3.5" aria-hidden="true" />
+              ) : (
+                <Bookmark className="size-3.5" aria-hidden="true" />
+              )}
+              {isSaved ? "Saved" : "Save"}
+            </button>
             <button
               type="button"
               onClick={onCompare}

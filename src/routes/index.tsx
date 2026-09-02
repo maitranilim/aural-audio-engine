@@ -14,6 +14,7 @@ import {
   ScrollCue,
 } from "@/components/page-sections";
 import { ResultView } from "@/components/result-view";
+import { SavedRail } from "@/components/saved-rail";
 import { SearchDock } from "@/components/search-dock";
 import { SiteHeader } from "@/components/site-header";
 import { useTrackedSection } from "@/lib/use-scroll-reveal";
@@ -23,6 +24,7 @@ import { EXAMPLES } from "@/lib/constants";
 import { clearHistory, loadHistory, pushHistory } from "@/lib/history";
 import { hasOnboarded } from "@/lib/onboarding";
 import { scrollToId } from "@/lib/scroll-to";
+import { isSaved, loadSaved, removeSaved, toggleSaved } from "@/lib/saved";
 import { beginRecording, blobToBase64, toWav, type ActiveRecording } from "@/lib/speech";
 import { ensureDistinct } from "@/lib/taxonomy";
 import type { CatalogHit, Classification, HistoryItem } from "@/lib/types";
@@ -48,6 +50,7 @@ function Home() {
   const [tour, setTour] = useState(false);
   const [docked, setDocked] = useState(false);
   const [compareBase, setCompareBase] = useState<CompareBase | null>(null);
+  const [saved, setSaved] = useState<HistoryItem[]>([]);
   const recRef = useRef<ActiveRecording | null>(null);
   const stoppingRef = useRef(false);
   const requestIdRef = useRef(0);
@@ -64,6 +67,10 @@ function Home() {
         classification: ensureDistinct(item.classification),
       })),
     );
+  }, []);
+
+  useEffect(() => {
+    setSaved(loadSaved());
   }, []);
 
   useLayoutEffect(() => {
@@ -290,6 +297,22 @@ function Home() {
         classification.artist.toLocaleLowerCase(),
   );
 
+  const currentIsSaved = Boolean(classification && isSaved(saved, classification));
+
+  const toggleCurrentSaved = useCallback(() => {
+    if (!classification) return;
+    const item: HistoryItem = {
+      id: `saved-${Date.now()}`,
+      savedAt: Date.now(),
+      query: query || `${classification.title} ${classification.artist}`,
+      classification,
+      catalog,
+    };
+    const wasSaved = isSaved(saved, classification);
+    setSaved(toggleSaved(item));
+    toast.success(wasSaved ? "Removed from saved mappings." : "Saved for your next visit.");
+  }, [catalog, classification, query, saved]);
+
   return (
     <main className="relative min-h-dvh overflow-x-hidden">
       <Atmosphere genre={classification?.genre} />
@@ -406,6 +429,8 @@ function Home() {
                 onSimilar={(q) => void runClassify(q)}
                 onCompare={pinForComparison}
                 isCompareBase={isCompareBase}
+                onToggleSaved={toggleCurrentSaved}
+                isSaved={currentIsSaved}
               />
               {compareBase ? (
                 <ComparisonView
@@ -414,6 +439,20 @@ function Home() {
                   onClear={() => setCompareBase(null)}
                 />
               ) : null}
+              <SavedRail
+                items={saved}
+                onPick={(item) => {
+                  setQuery(item.query);
+                  setClassification(ensureDistinct(item.classification));
+                  setCatalog(item.catalog);
+                  setErrorMessage(null);
+                  goResult();
+                }}
+                onRemove={(item) => {
+                  setSaved(removeSaved(item));
+                  toast.success("Removed from saved mappings.");
+                }}
+              />
               <HistoryRail
                 items={history}
                 onPick={(item) => {

@@ -8,6 +8,7 @@ import {
   parseHistoryItem,
   pushHistory,
 } from "./history.ts";
+import { isSaved, loadSaved, removeSaved, toggleSaved } from "./saved.ts";
 
 function makeClassification(overrides: Partial<Classification> = {}): Classification {
   return {
@@ -124,5 +125,31 @@ describe("history storage", () => {
     assert.deepEqual(loadHistory(), []);
     assert.deepEqual(clearHistory(), []);
     assert.deepEqual(pushHistory(makeHistory()), [makeHistory()]);
+  });
+});
+
+describe("saved mappings", () => {
+  it("toggles a valid mapping without duplicating the same recording", () => {
+    const item = makeHistory();
+    const result = withStorage([], () => {
+      const saved = toggleSaved(item);
+      assert.equal(saved.length, 1);
+      assert.equal(isSaved(saved, item.classification), true);
+      const removed = toggleSaved({ ...item, id: "new-id" });
+      assert.deepEqual(removed, []);
+      return loadSaved();
+    });
+    assert.deepEqual(result, []);
+  });
+
+  it("removes one mapping while retaining another", () => {
+    const first = makeHistory();
+    const second = makeHistory({
+      id: "history-2",
+      query: "Strobe deadmau5",
+      classification: makeClassification({ title: "Strobe", artist: "deadmau5" }),
+    });
+    const result = withStorage([first, second], () => removeSaved(first));
+    assert.deepEqual(result, [second]);
   });
 });
