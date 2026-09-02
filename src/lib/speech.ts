@@ -1,3 +1,9 @@
+import {
+  createVoiceActivityState,
+  observeVoice,
+  VOICE_SAMPLE_MS,
+} from "./voice-activity";
+
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -204,7 +210,11 @@ export type ActiveRecording = {
 const STOP_GRACE_MS = 4000;
 
 export async function beginRecording(
-  opts: { maxMs?: number; onAutoStop?: () => void } = {},
+  opts: {
+    maxMs?: number;
+    onVoiceStart?: () => void;
+    onAutoStop?: (reason: "silence" | "limit") => void;
+  } = {},
 ): Promise<ActiveRecording> {
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
     throw new Error("NO_MIC");
@@ -236,9 +246,13 @@ export async function beginRecording(
   };
 
   let released = false;
+  let activityTimer: number | undefined;
+  let audioContext: AudioContext | undefined;
   const release = () => {
     if (released) return;
     released = true;
+    if (activityTimer !== undefined) window.clearInterval(activityTimer);
+    void audioContext?.close().catch(() => {});
     stream.getTracks().forEach((t) => t.stop());
   };
 
@@ -266,6 +280,42 @@ export async function beginRecording(
     recorder.start(250);
   } catch {
     recorder.start();
+  }
+
+  const AudioContextCtor =
+    window.AudioContext ||
+    (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (AudioContextCtor) {
+    try {
+      audioContext = new AudioContextCtor();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0.25;
+      source.connect(analyser);
+      const samples = new Float32Array(analyser.fftSize);
+      let activity = createVoiceActivityState();
+      activityTimer = window.setInterval(() => {
+        if (recorder.state === "inactive") return;
+        analyser.getFloatTimeDomainData(samples);
+        let energy = 0;
+        for (let i = 0; i < samples.length; i++) energy += (samples[i] ?? 0) ** 2;
+        const observation = observeVoice(
+          activity,
+          Math.sqrt(energy / samples.length),
+          performance.now(),
+        );
+        activity = observation.state;
+        if (observation.event === "voice-start") opts.onVoiceStart?.();
+        if (observation.event === "speech-end") {
+          void stop();
+          opts.onAutoStop?.("silence");
+        }
+      }, VOICE_SAMPLE_MS);
+    } catch {
+      void audioContext?.close().catch(() => {});
+      audioContext = undefined;
+    }
   }
 
   let stopOnce: Promise<{ blob: Blob; mimeType: string }> | null = null;
@@ -319,8 +369,8 @@ export async function beginRecording(
   window.setTimeout(() => {
     if (recorder.state === "inactive") return;
     void stop();
-    opts.onAutoStop?.();
-  }, opts.maxMs ?? 12000);
+    opts.onAutoStop?.("limit");
+  }, opts.maxMs ?? 20000);
 
   return { stop };
 }

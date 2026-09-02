@@ -12,7 +12,6 @@ export function SearchDock({
   onMic,
   mode,
   hint,
-  seconds = 0,
   compact = false,
 }: {
   value: string;
@@ -21,7 +20,6 @@ export function SearchDock({
   onMic: () => void;
   mode: Mode;
   hint?: string;
-  seconds?: number;
   compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -52,8 +50,6 @@ export function SearchDock({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [compact]);
-
-  const clock = `0:${String(Math.min(seconds, 59)).padStart(2, "0")}`;
 
   return (
     <form
@@ -112,11 +108,6 @@ export function SearchDock({
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
           )}
         />
-        {live ? (
-          <span className="hidden tabular-nums text-xs font-medium text-accent sm:inline">
-            {clock}
-          </span>
-        ) : null}
         <button
           type="button"
           onClick={onMic}

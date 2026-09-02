@@ -42,7 +42,7 @@ function Home() {
   const lenis = useLenis();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("idle");
-  const [seconds, setSeconds] = useState(0);
+  const [heardSpeech, setHeardSpeech] = useState(false);
   const [classification, setClassification] = useState<Classification | null>(null);
   const [catalog, setCatalog] = useState<CatalogHit | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -93,15 +93,6 @@ function Home() {
     if (tour) lenis.stop();
     else lenis.start();
   }, [lenis, tour]);
-
-  useEffect(() => {
-    if (mode !== "recording") {
-      setSeconds(0);
-      return;
-    }
-    const id = window.setInterval(() => setSeconds((s) => s + 1), 1000);
-    return () => window.clearInterval(id);
-  }, [mode]);
 
   const goResult = useCallback(() => {
     window.requestAnimationFrame(() => {
@@ -245,10 +236,12 @@ function Home() {
     startingRef.current = true;
     void (async () => {
       try {
-        // The recorder owns the 12s cap and tells us when it fires, so the UI
-        // can never disagree with it about whether the mic is still open.
+        // The recorder owns voice-end detection and the 20s cap, so the UI can
+        // never disagree with it about whether the mic is still open.
+        setHeardSpeech(false);
         const rec = await beginRecording({
-          maxMs: 12000,
+          maxMs: 20000,
+          onVoiceStart: () => setHeardSpeech(true),
           onAutoStop: () => {
             if (recRef.current === rec) void finishRecording();
           },
@@ -271,7 +264,9 @@ function Home() {
 
   const hint =
     mode === "recording"
-      ? `Recording ${seconds}s — tap the square when you finish`
+      ? heardSpeech
+        ? "Song heard — detecting when you finish"
+        : "Listening — say the song and artist"
       : mode === "transcribing"
         ? "Turning speech into a title"
         : mode === "classifying"
@@ -286,7 +281,6 @@ function Home() {
       onMic={onMic}
       mode={mode}
       hint={hint}
-      seconds={seconds}
     />
   );
 
@@ -374,7 +368,6 @@ function Home() {
               onSubmit={() => void runClassify(query)}
               onMic={onMic}
               mode={mode}
-              seconds={seconds}
               compact
             />
           }
