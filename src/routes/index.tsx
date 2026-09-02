@@ -520,7 +520,7 @@ function Home() {
         <HowSection />
         <LineageSection />
         <AtlasSection onPick={(q) => void runClassify(q)} disabled={mode !== "idle"} />
-        <AboutSection />
+        <AboutSection onReplayIntro={() => setTour(true)} />
 
         <footer className="pb-16 text-center text-xs text-subtle">Made by Nilim</footer>
       </div>

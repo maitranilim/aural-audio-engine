@@ -485,7 +485,7 @@ export function AtlasSection({
   );
 }
 
-export function AboutSection() {
+export function AboutSection({ onReplayIntro }: { onReplayIntro: () => void }) {
   return (
     <section
       id="about"
@@ -501,6 +501,13 @@ export function AboutSection() {
         Aural is a single-page taxonomy tool: name a song, read the lineage, keep scrolling. No
         accounts. Recent maps stay on this device.
       </p>
+      <button
+        type="button"
+        onClick={onReplayIntro}
+        className="glass-thin mt-7 min-h-11 w-fit rounded-full px-5 text-sm font-medium text-fg transition-[scale,background-color] hover:bg-fg/10 active:scale-[0.97]"
+      >
+        Replay quick intro
+      </button>
     </section>
   );
 }
