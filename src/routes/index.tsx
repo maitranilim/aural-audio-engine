@@ -166,10 +166,9 @@ function Home() {
     const params = new URLSearchParams(window.location.search);
     const shared = params.get("q")?.trim();
     const compare = params.get("compare")?.trim();
-    let cancelled = false;
     if (compare && compare !== shared) {
       void classifyTrack({ data: { query: compare } }).then((result) => {
-        if (!cancelled && result.ok) {
+        if (result.ok) {
           setCompareBase({
             query: compare,
             classification: ensureDistinct(result.classification),
@@ -178,9 +177,6 @@ function Home() {
       });
     }
     if (shared) void runClassify(shared);
-    return () => {
-      cancelled = true;
-    };
   }, [runClassify]);
 
   const finishRecording = useCallback(async () => {
