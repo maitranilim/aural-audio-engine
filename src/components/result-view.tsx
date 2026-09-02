@@ -1,4 +1,4 @@
-import { Check, Copy, Share2 } from "lucide-react";
+import { Check, Copy, GitCompareArrows, Share2 } from "lucide-react";
 import { useState } from "react";
 import { PreviewPlayer } from "@/components/preview-player";
 import type { CatalogHit, Classification } from "@/lib/types";
@@ -56,11 +56,15 @@ export function ResultView({
   catalog,
   query,
   onSimilar,
+  onCompare,
+  isCompareBase = false,
 }: {
   classification: Classification;
   catalog: CatalogHit | null;
   query: string;
   onSimilar: (query: string) => void;
+  onCompare: () => void;
+  isCompareBase?: boolean;
 }) {
   const [feedback, setFeedback] = useState<"copied" | "shared" | "error" | null>(null);
   const [artFailed, setArtFailed] = useState(false);
@@ -177,6 +181,25 @@ export function ResultView({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">Lineage</p>
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={onCompare}
+              aria-pressed={isCompareBase}
+              aria-label={
+                isCompareBase
+                  ? "This mapping is pinned for comparison"
+                  : "Pin this mapping and compare another track"
+              }
+              className={cn(
+                "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
+                "glass-thin transition-[scale,color,background-color] duration-150 ease-out",
+                "active:scale-[0.96]",
+                isCompareBase ? "bg-accent/15 text-accent" : "text-muted hover:text-fg",
+              )}
+            >
+              <GitCompareArrows className="size-3.5" aria-hidden="true" />
+              {isCompareBase ? "Pinned" : "Compare"}
+            </button>
             <button
               type="button"
               onClick={() => void copy()}

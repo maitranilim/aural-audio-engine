@@ -4,6 +4,7 @@ import { useLenis } from "lenis/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Atmosphere } from "@/components/atmosphere";
+import { ComparisonView } from "@/components/comparison-view";
 import { HistoryRail } from "@/components/history-rail";
 import {
   AboutSection,
@@ -30,6 +31,10 @@ export const Route = createFileRoute("/")({ component: Home });
 
 type Mode = "idle" | "listening" | "recording" | "transcribing" | "classifying";
 
+type CompareBase = {
+  classification: Classification;
+};
+
 function Home() {
   const lenis = useLenis();
   const [query, setQuery] = useState("");
@@ -42,6 +47,7 @@ function Home() {
   const [retryQuery, setRetryQuery] = useState("");
   const [tour, setTour] = useState(false);
   const [docked, setDocked] = useState(false);
+  const [compareBase, setCompareBase] = useState<CompareBase | null>(null);
   const recRef = useRef<ActiveRecording | null>(null);
   const stoppingRef = useRef(false);
   const requestIdRef = useRef(0);
@@ -264,6 +270,26 @@ function Home() {
     />
   );
 
+  const pinForComparison = useCallback(() => {
+    if (!classification) return;
+    setCompareBase({ classification });
+    toast.success("Pinned. Search another track to compare its lineage.");
+    scrollToId("tool", lenis, -24, 0.85);
+    window.setTimeout(
+      () => document.querySelector<HTMLInputElement>('input[name="query"]')?.focus(),
+      500,
+    );
+  }, [classification, lenis]);
+
+  const isCompareBase = Boolean(
+    compareBase &&
+      classification &&
+      compareBase.classification.title.toLocaleLowerCase() ===
+        classification.title.toLocaleLowerCase() &&
+      compareBase.classification.artist.toLocaleLowerCase() ===
+        classification.artist.toLocaleLowerCase(),
+  );
+
   return (
     <main className="relative min-h-dvh overflow-x-hidden">
       <Atmosphere genre={classification?.genre} />
@@ -378,7 +404,16 @@ function Home() {
                 catalog={catalog}
                 query={query}
                 onSimilar={(q) => void runClassify(q)}
+                onCompare={pinForComparison}
+                isCompareBase={isCompareBase}
               />
+              {compareBase ? (
+                <ComparisonView
+                  base={compareBase}
+                  current={classification}
+                  onClear={() => setCompareBase(null)}
+                />
+              ) : null}
               <HistoryRail
                 items={history}
                 onPick={(item) => {
