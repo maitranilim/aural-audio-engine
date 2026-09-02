@@ -1,0 +1,35 @@
+{
+  "name": "Aural · Sonic Taxonomy",
+  "short_name": "Aural",
+  "description": "Map, save, compare, and share the genre lineage of any song.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#07080c",
+  "theme_color": "#07080c",
+  "orientation": "any",
+  "categories": ["music", "education", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Map Lean On",
+      "short_name": "Lean On",
+      "description": "Open a complete example lineage",
+      "url": "/?q=Lean+On+Major+Lazer"
+    },
+    {
+      "name": "Compare two tracks",
+      "short_name": "Compare",
+      "description": "Open an example A/B lineage",
+      "url": "/?compare=Lean+On+Major+Lazer&q=Strobe+deadmau5"
+    }
+  ]
+}

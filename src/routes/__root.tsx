@@ -42,6 +42,10 @@ export const Route = createRootRoute({
         content: APP_DESCRIPTION,
       },
       { name: "robots", content: "index, follow, max-image-preview:large" },
+      { name: "application-name", content: APP_NAME },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: APP_NAME },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "theme-color", content: "#07080c" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: APP_NAME },
@@ -61,6 +65,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "manifest", href: "/site.webmanifest" },
       { rel: "canonical", href: APP_URL },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
