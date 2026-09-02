@@ -14,11 +14,38 @@ const HOW_BEATS = [
 ] as const;
 
 const HOUSE_CORNERS = [
-  "Tech House",
-  "Deep House",
-  "Tropical House",
-  "French House",
-  "Progressive House",
+  {
+    name: "Tech House",
+    branch: "Minimal Tech House",
+    recording: "Losing It · FISHER",
+    detail: "Punchy drums, clipped bass, and sparse vocal hooks keep the groove in front.",
+  },
+  {
+    name: "Deep House",
+    branch: "Soulful Deep House",
+    recording: "Can You Feel It · Mr. Fingers",
+    detail:
+      "Warm chords, restrained drums, and soul-rooted feeling pull house toward its deeper side.",
+  },
+  {
+    name: "Tropical House",
+    branch: "Moombahton",
+    recording: "Lean On · Major Lazer",
+    detail:
+      "A bright house palette meets a dembow-leaning swing. The last step names the tighter scene.",
+  },
+  {
+    name: "French House",
+    branch: "Filter House",
+    recording: "Music Sounds Better with You · Stardust",
+    detail: "Disco samples, pumping compression, and sweeping filters define the French-touch branch.",
+  },
+  {
+    name: "Progressive House",
+    branch: "Melodic Progressive House",
+    recording: "Strobe · deadmau5",
+    detail: "Long builds, evolving harmony, and patient release make melody the scene marker.",
+  },
 ] as const;
 
 const WORKED = [
@@ -295,6 +322,9 @@ const LINEAGE_BEATS = [
 
 export function LineageSection() {
   const { ref, railRef, step } = useChapterBeat("lineage", LINEAGE_BEATS.length);
+  const [selectedCorner, setSelectedCorner] = useState<(typeof HOUSE_CORNERS)[number]>(
+    HOUSE_CORNERS[2],
+  );
   return (
     <section id="lineage" ref={ref} className="chapter scroll-mt-24">
       <div className="mx-auto grid max-w-6xl md:grid-cols-[minmax(0,240px)_1fr] lg:grid-cols-[minmax(0,280px)_1fr]">
@@ -360,32 +390,44 @@ export function LineageSection() {
               <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted">
                 EDM → House
               </div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {HOUSE_CORNERS.map((name) => {
-                  const on = name === "Tropical House";
+              <div
+                className="mt-4 flex flex-wrap gap-2"
+                aria-label="Explore corners of house music"
+              >
+                {HOUSE_CORNERS.map((corner) => {
+                  const on = corner.name === selectedCorner.name;
                   return (
-                    <span
-                      key={name}
+                    <button
+                      type="button"
+                      key={corner.name}
+                      aria-pressed={on}
+                      onClick={() => setSelectedCorner(corner)}
                       className={cn(
-                        "rounded-full px-4 py-2 text-sm",
-                        on ? "bg-fg text-bg" : "glass-thin text-fg",
+                        "min-h-11 rounded-full px-4 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                        on ? "bg-fg text-bg" : "glass-thin text-fg hover:bg-fg/10",
                       )}
                     >
-                      {name}
-                    </span>
+                      {corner.name}
+                    </button>
                   );
                 })}
               </div>
-              <div className="mt-6 glass rounded-[28px] p-6">
+              <div
+                className="mt-6 glass rounded-[28px] p-6"
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted">
-                  Lean On lands here
+                  Example recording
                 </div>
                 <p className="mt-3 font-display text-2xl font-semibold tracking-tight">
-                  Tropical House → Moombahton
+                  {selectedCorner.name} → {selectedCorner.branch}
+                </p>
+                <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-accent">
+                  {selectedCorner.recording}
                 </p>
                 <p className="mt-2 text-sm leading-relaxed text-muted">
-                  Moombahton is house at a dembow clip. It is not “house” again, and it is not “EDM”
-                  again.
+                  {selectedCorner.detail}
                 </p>
               </div>
             </div>
