@@ -1,8 +1,10 @@
-import { X } from "lucide-react";
+import { Check, Share2, X } from "lucide-react";
+import { useState } from "react";
 import type { Classification } from "@/lib/types";
 import { ensureDistinct } from "@/lib/taxonomy";
 
 type ComparedTrack = {
+  query: string;
   classification: Classification;
 };
 
@@ -11,7 +13,10 @@ function normalize(value: string) {
 }
 
 function sameTrack(a: Classification, b: Classification) {
-  return normalize(a.title) === normalize(b.title) && normalize(a.artist) === normalize(b.artist);
+  return (
+    normalize(a.title) === normalize(b.title) &&
+    normalize(a.artist) === normalize(b.artist)
+  );
 }
 
 function TrackColumn({ label, track }: { label: string; track: Classification }) {
@@ -42,11 +47,18 @@ function TrackColumn({ label, track }: { label: string; track: Classification })
   );
 }
 
-export function ComparisonView({ base, current, onClear }: {
+export function ComparisonView({
+  base,
+  current,
+  currentQuery,
+  onClear,
+}: {
   base: ComparedTrack;
   current: Classification;
+  currentQuery: string;
   onClear: () => void;
 }) {
+  const [shareState, setShareState] = useState<"shared" | "error" | null>(null);
   if (sameTrack(base.classification, current)) return null;
 
   const left = ensureDistinct(base.classification);
@@ -57,6 +69,31 @@ export function ComparisonView({ base, current, onClear }: {
     normalize(left.microgenre) === normalize(right.microgenre) ? left.microgenre : null,
   ].filter((value): value is string => Boolean(value));
 
+  const shareComparison = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("compare", base.query);
+    url.searchParams.set("q", currentQuery || `${right.title} ${right.artist}`);
+    const text = `${left.title} vs ${right.title}: ${
+      shared.length > 0 ? `shared ${shared.join(" / ")}` : "different top-level genres"
+    }`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `${left.title} vs ${right.title} · Aural`,
+          text,
+          url: url.toString(),
+        });
+      } else {
+        await navigator.clipboard.writeText(`${text}\n${url.toString()}`);
+      }
+      setShareState("shared");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      setShareState("error");
+    }
+    window.setTimeout(() => setShareState(null), 1800);
+  };
+
   return (
     <section
       className="glass glass-sheen mx-auto w-full max-w-5xl rounded-[32px] p-5 sm:p-7"
@@ -64,8 +101,13 @@ export function ComparisonView({ base, current, onClear }: {
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">A/B lineage</p>
-          <h2 id="comparison-title" className="mt-2 font-display text-2xl font-semibold tracking-tight">
+          <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
+            A/B lineage
+          </p>
+          <h2
+            id="comparison-title"
+            className="mt-2 font-display text-2xl font-semibold tracking-tight"
+          >
             Compare the ladders
           </h2>
           <p className="mt-2 text-sm text-muted">
@@ -74,15 +116,35 @@ export function ComparisonView({ base, current, onClear }: {
               : "These tracks split at the top-level genre."}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onClear}
-          aria-label="Close comparison"
-          className="glass-thin flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-[scale,color] duration-150 hover:text-fg active:scale-[0.96]"
-        >
-          <X className="size-4" aria-hidden="true" />
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => void shareComparison()}
+            aria-label="Share this comparison"
+            className="glass-thin flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted transition-[scale,color] duration-150 hover:text-fg active:scale-[0.96]"
+          >
+            {shareState === "shared" ? (
+              <Check className="size-3.5 text-accent" aria-hidden="true" />
+            ) : (
+              <Share2 className="size-3.5" aria-hidden="true" />
+            )}
+            {shareState === "shared" ? "Shared" : "Share"}
+          </button>
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label="Close comparison"
+            className="glass-thin flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-[scale,color] duration-150 hover:text-fg active:scale-[0.96]"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </div>
       </div>
+      {shareState === "error" ? (
+        <p className="mt-3 text-xs text-danger" role="status">
+          Couldn’t share this comparison. Your browser may block clipboard access.
+        </p>
+      ) : null}
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <TrackColumn label="Pinned" track={left} />
         <TrackColumn label="Current" track={right} />

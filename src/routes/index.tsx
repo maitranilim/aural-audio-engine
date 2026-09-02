@@ -34,6 +34,7 @@ export const Route = createFileRoute("/")({ component: Home });
 type Mode = "idle" | "listening" | "recording" | "transcribing" | "classifying";
 
 type CompareBase = {
+  query: string;
   classification: Classification;
 };
 
@@ -162,8 +163,24 @@ function Home() {
   useEffect(() => {
     if (sharedQueryRef.current) return;
     sharedQueryRef.current = true;
-    const shared = new URLSearchParams(window.location.search).get("q")?.trim();
+    const params = new URLSearchParams(window.location.search);
+    const shared = params.get("q")?.trim();
+    const compare = params.get("compare")?.trim();
+    let cancelled = false;
+    if (compare && compare !== shared) {
+      void classifyTrack({ data: { query: compare } }).then((result) => {
+        if (!cancelled && result.ok) {
+          setCompareBase({
+            query: compare,
+            classification: ensureDistinct(result.classification),
+          });
+        }
+      });
+    }
     if (shared) void runClassify(shared);
+    return () => {
+      cancelled = true;
+    };
   }, [runClassify]);
 
   const finishRecording = useCallback(async () => {
@@ -279,7 +296,15 @@ function Home() {
 
   const pinForComparison = useCallback(() => {
     if (!classification) return;
-    setCompareBase({ classification });
+    const compareQuery = query || `${classification.title} ${classification.artist}`;
+    setCompareBase({ query: compareQuery, classification });
+    const url = new URL(window.location.href);
+    url.searchParams.set("compare", compareQuery);
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
     toast.success("Pinned. Search another track to compare its lineage.");
     scrollToId("tool", lenis, -24, 0.85);
     window.setTimeout(
@@ -327,6 +352,17 @@ function Home() {
   const removeStoredMapping = useCallback((item: HistoryItem) => {
     setSaved(removeSaved(item));
     toast.success("Removed from saved mappings.");
+  }, []);
+
+  const clearComparison = useCallback(() => {
+    setCompareBase(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("compare");
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${url.search}${url.hash}`,
+    );
   }, []);
 
   return (
@@ -461,7 +497,8 @@ function Home() {
                 <ComparisonView
                   base={compareBase}
                   current={classification}
-                  onClear={() => setCompareBase(null)}
+                  currentQuery={query}
+                  onClear={clearComparison}
                 />
               ) : null}
               <SavedRail
