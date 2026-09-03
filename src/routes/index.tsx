@@ -401,7 +401,7 @@ function Home() {
                   type="button"
                   onClick={() => void runClassify(ex.q)}
                   disabled={mode !== "idle"}
-                  className="glass-thin h-11 rounded-full px-4 text-sm text-fg disabled:opacity-50"
+                  className="glass-thin h-11 rounded-full px-4 text-sm text-fg transition-[transform,background-color,box-shadow] duration-150 hover:-translate-y-1 hover:bg-fg/10 hover:shadow-glass-hover active:translate-y-0 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50"
                 >
                   {ex.label}
                 </button>

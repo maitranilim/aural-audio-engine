@@ -36,7 +36,7 @@ export function SavedMenu({
           sideOffset={10}
           collisionPadding={16}
           aria-label="Saved mappings menu"
-          className="glass-strong z-50 w-[min(22rem,calc(100vw-2rem))] rounded-[28px] border border-line/60 p-3 shadow-2xl outline-none"
+          className="glass-strong z-50 w-[min(22rem,calc(100vw-2rem))] rounded-[28px] border border-line/80 !bg-bg p-3 shadow-2xl outline-none"
         >
           <div className="flex items-center gap-2 px-2 pb-3 pt-1">
             <BookmarkCheck className="size-4 text-accent" aria-hidden="true" />

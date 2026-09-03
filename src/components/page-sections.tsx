@@ -87,6 +87,11 @@ const WORKED = [
   },
 ] as const;
 
+const WORKED_GROUPS = ["EDM", "Hip-Hop", "Jazz", "Pop"].map((genre) => ({
+  genre,
+  rows: WORKED.filter((row) => row.genre === genre),
+}));
+
 /**
  * Ties a chapter's rail to how far through it the reader actually is.
  *
@@ -113,8 +118,12 @@ function useChapterBeat(id: string, length: number) {
   return { ref, railRef, step };
 }
 
-function Scene({ children }: { children: ReactNode }) {
-  return <div className="scene">{children}</div>;
+function Scene({ children, id }: { children: ReactNode; id?: string }) {
+  return (
+    <div id={id} className="scene">
+      {children}
+    </div>
+  );
 }
 
 function Rail({
@@ -123,13 +132,18 @@ function Rail({
   beats,
   step,
   railRef,
+  sectionId,
 }: {
   kicker: string;
   title: string;
   beats: readonly { n: string; title: string; hint: string }[];
   step: number;
   railRef: React.RefObject<HTMLDivElement | null>;
+  sectionId: string;
 }) {
+  const lenis = useLenis();
+  const [openBeat, setOpenBeat] = useState<number | null>(null);
+
   return (
     <aside className="chapter-rail">
       <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">{kicker}</p>
@@ -145,18 +159,40 @@ function Rail({
         </div>
         <ol className="flex gap-2 md:flex-col md:gap-1 md:pl-5">
           {beats.map((b, i) => (
-            <li key={b.n}>
-              <div
+            <li key={b.n} className="min-w-0">
+              <button
+                type="button"
+                aria-expanded={openBeat === i}
+                aria-controls={`${sectionId}-beat-note-${i + 1}`}
+                onClick={() => {
+                  setOpenBeat((current) => (current === i ? null : i));
+                  scrollToId(`${sectionId}-beat-${i + 1}`, lenis, -96, 0.85);
+                }}
                 className={cn(
-                  "flex items-baseline gap-3 rounded-full px-3 py-2 md:rounded-2xl",
-                  "transition-[background-color,color,opacity] duration-300",
+                  "flex min-h-11 w-full items-center gap-3 rounded-full px-3 py-2 text-left md:rounded-2xl",
+                  "transition-[transform,background-color,color,opacity] duration-200 hover:translate-x-1 hover:bg-fg/10 hover:text-fg active:scale-[0.98]",
                   i === step ? "bg-fg/10 text-fg" : "text-muted opacity-70",
                 )}
               >
                 <span className="text-[10px] font-medium tabular-nums text-accent">{b.n}</span>
                 <span className="text-sm font-medium">{b.title}</span>
                 <span className="hidden text-xs text-subtle md:inline">{b.hint}</span>
-              </div>
+                <ChevronDown
+                  className={cn(
+                    "ml-auto size-3.5 shrink-0 transition-transform md:hidden",
+                    openBeat === i && "rotate-180",
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
+              {openBeat === i ? (
+                <p
+                  id={`${sectionId}-beat-note-${i + 1}`}
+                  className="mx-2 mt-1 rounded-xl bg-fg/5 px-3 py-2 text-xs leading-relaxed text-muted md:hidden"
+                >
+                  {b.hint}
+                </p>
+              ) : null}
             </li>
           ))}
         </ol>
@@ -194,9 +230,10 @@ export function HowSection() {
           beats={HOW_BEATS}
           step={step}
           railRef={railRef}
+          sectionId="how"
         />
         <div className="min-w-0 px-4 sm:px-6">
-          <Scene>
+          <Scene id="how-beat-1">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Beat 01
             </p>
@@ -222,7 +259,7 @@ export function HowSection() {
               <Door
                 icon={Mic}
                 label="Speak"
-                detail="Tap the mic, say the song, tap again. It becomes text."
+                detail="Say the song and artist. Aural stops when you finish and maps it."
               />
               <Door
                 icon={Pointer}
@@ -232,7 +269,7 @@ export function HowSection() {
             </div>
           </Scene>
 
-          <Scene>
+          <Scene id="how-beat-2">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Beat 02
             </p>
@@ -245,8 +282,8 @@ export function HowSection() {
               Public catalogs return artwork, year, and a store tag. That tag is a shelf label —
               useful for shops, too wide to be a lineage.
             </p>
-            <div className="mt-8 grid gap-4 sm:grid-cols-[9rem_1fr]">
-              <div className="glass flex aspect-square items-end rounded-[28px] p-4 text-accent">
+            <div className="mt-8 grid grid-cols-[6rem_1fr] gap-3 sm:grid-cols-[9rem_1fr] sm:gap-4">
+              <div className="glass flex min-h-32 items-end rounded-[28px] p-4 text-accent sm:aspect-square">
                 <div className="eq h-10" aria-hidden="true">
                   <span />
                   <span />
@@ -267,11 +304,19 @@ export function HowSection() {
                   <span className="rounded-full bg-fg/10 px-3 py-1 text-xs">Store tag: Dance</span>
                   <span className="text-xs text-subtle">too broad to keep</span>
                 </div>
+                <div className="mt-5 border-t border-line pt-4">
+                  <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-accent">
+                    Aural refines it
+                  </div>
+                  <p className="mt-2 text-sm font-medium leading-relaxed text-fg">
+                    EDM → Tropical House → Moombahton
+                  </p>
+                </div>
               </article>
             </div>
           </Scene>
 
-          <Scene>
+          <Scene id="how-beat-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Beat 03
             </p>
@@ -325,6 +370,7 @@ export function LineageSection() {
   const [selectedCorner, setSelectedCorner] = useState<(typeof HOUSE_CORNERS)[number]>(
     HOUSE_CORNERS[2],
   );
+  const [expandedGenre, setExpandedGenre] = useState("EDM");
   return (
     <section id="lineage" ref={ref} className="chapter scroll-mt-24">
       <div className="mx-auto grid max-w-6xl md:grid-cols-[minmax(0,240px)_1fr] lg:grid-cols-[minmax(0,280px)_1fr]">
@@ -334,9 +380,10 @@ export function LineageSection() {
           beats={LINEAGE_BEATS}
           step={step}
           railRef={railRef}
+          sectionId="lineage"
         />
         <div className="min-w-0 px-4 sm:px-6">
-          <Scene>
+          <Scene id="lineage-beat-1">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Beat 01
             </p>
@@ -373,7 +420,7 @@ export function LineageSection() {
             </div>
           </Scene>
 
-          <Scene>
+          <Scene id="lineage-beat-2">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Beat 02
             </p>
@@ -433,7 +480,7 @@ export function LineageSection() {
             </div>
           </Scene>
 
-          <Scene>
+          <Scene id="lineage-beat-3">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Beat 03
             </p>
@@ -444,29 +491,63 @@ export function LineageSection() {
               Every row is three different words. Read down a column and you get family, room,
               scene.
             </p>
-            <div className="mt-8 overflow-hidden rounded-[28px] glass">
-              <div className="hidden grid-cols-[1.2fr_0.8fr_1fr_1fr] gap-3 border-b border-line px-5 py-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted sm:grid">
-                <span>Track</span>
-                <span>Genre</span>
-                <span>Subgenre</span>
-                <span>Microgenre</span>
-              </div>
-              {WORKED.map((row) => (
-                <div
-                  key={row.title}
-                  className="grid gap-1 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[1.2fr_0.8fr_1fr_1fr] sm:items-baseline"
-                >
-                  <div>
-                    <div className="font-display text-lg font-semibold tracking-tight">
-                      {row.title}
-                    </div>
-                    <div className="text-xs text-subtle">{row.artist}</div>
+            <div className="mt-8 space-y-2" aria-label="Mapped recordings by genre">
+              {WORKED_GROUPS.map((group) => {
+                const expanded = expandedGenre === group.genre;
+                const panelId = `worked-${group.genre.toLowerCase()}`;
+                return (
+                  <div key={group.genre} className="glass overflow-hidden rounded-[24px]">
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={panelId}
+                      onClick={() => setExpandedGenre(expanded ? "" : group.genre)}
+                      className="flex min-h-14 w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                    >
+                      <span className="font-display text-lg font-semibold">{group.genre}</span>
+                      <span className="rounded-full bg-fg/10 px-2 py-1 text-[10px] text-muted">
+                        {group.rows.length} {group.rows.length === 1 ? "track" : "tracks"}
+                      </span>
+                      <ChevronDown
+                        className={cn(
+                          "ml-auto size-4 text-muted transition-transform",
+                          expanded && "rotate-180",
+                        )}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {expanded ? (
+                      <div id={panelId} className="border-t border-line">
+                        {group.rows.map((row) => (
+                          <article
+                            key={row.title}
+                            className="grid gap-3 border-b border-line px-5 py-4 last:border-b-0 sm:grid-cols-[1.1fr_1fr_1fr] sm:items-center"
+                          >
+                            <div>
+                              <div className="font-display text-lg font-semibold tracking-tight">
+                                {row.title}
+                              </div>
+                              <div className="text-xs text-subtle">{row.artist}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.16em] text-subtle">
+                                Subgenre
+                              </div>
+                              <div className="mt-1 text-sm">{row.sub}</div>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.16em] text-subtle">
+                                Microgenre
+                              </div>
+                              <div className="mt-1 text-sm text-accent">{row.micro}</div>
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="text-sm">{row.genre}</div>
-                  <div className="text-sm">{row.sub}</div>
-                  <div className="text-sm text-accent">{row.micro}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </Scene>
         </div>
@@ -509,8 +590,8 @@ export function AtlasSection({
             disabled={disabled}
             className={cn(
               "glass group min-h-36 rounded-[32px] p-7 text-left",
-              "transition-[scale,background-color] duration-150 ease-out",
-              "hover:bg-fg/5 active:scale-[0.96] disabled:opacity-50",
+              "border border-transparent transition-[transform,background-color,border-color,box-shadow] duration-150 ease-out",
+              "hover:-translate-y-1 hover:border-accent/40 hover:bg-fg/10 hover:shadow-glass-hover active:translate-y-0 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50",
             )}
           >
             <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted">
@@ -540,8 +621,8 @@ export function AboutSection({ onReplayIntro }: { onReplayIntro: () => void }) {
         Built as a listening instrument
       </h2>
       <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted">
-        Aural is a single-page taxonomy tool: name a song, read the lineage, keep scrolling. No
-        accounts. Recent maps stay on this device.
+        Turn any song into a clear sonic address: genre, subgenre, then microgenre. Save discoveries
+        on this device, compare neighboring sounds, and return whenever curiosity strikes.
       </p>
       <button
         type="button"
