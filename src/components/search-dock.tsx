@@ -105,7 +105,6 @@ export function SearchDock({
             "min-w-0 flex-1 bg-transparent text-fg caret-fg outline-none",
             compact ? "h-11 text-sm" : "h-11 text-base",
             "placeholder:text-subtle disabled:opacity-60",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
           )}
         />
         <button
