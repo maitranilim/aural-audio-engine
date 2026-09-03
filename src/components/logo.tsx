@@ -4,35 +4,33 @@ export function Mark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={cn("size-8", className)} aria-hidden="true">
       <rect
-        x="6"
-        y="5"
-        width="16"
-        height="20"
-        rx="4"
-        fill="var(--aural-veil)"
+        x="1.5"
+        y="1.5"
+        width="29"
+        height="29"
+        rx="9"
+        fill="color-mix(in srgb, var(--aural-accent) 8%, transparent)"
         stroke="var(--aural-line)"
-        strokeWidth="1.2"
+        strokeWidth="1"
       />
-      <rect
-        x="10"
-        y="8"
-        width="16"
-        height="20"
-        rx="4"
-        fill="color-mix(in srgb, var(--aural-accent) 18%, transparent)"
-        stroke="var(--aural-accent)"
-        strokeWidth="1.2"
+      <path
+        d="M4 16h2l1.7-4.5 2.3 9 2.4-13 2.4 17 1.9-8.5H20"
+        fill="none"
+        stroke="var(--aural-fg)"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <rect
-        x="8"
-        y="6.5"
-        width="16"
-        height="20"
-        rx="4"
-        fill="color-mix(in srgb, var(--aural-bg-elevated) 70%, transparent)"
+      <path
+        d="M20 16h3.5M23.5 8.5v15M23.5 8.5H27M23.5 16H27M23.5 23.5H27"
+        fill="none"
         stroke="var(--aural-fg)"
         strokeWidth="1.2"
+        strokeLinecap="round"
       />
+      <circle cx="28" cy="8.5" r="1.5" fill="var(--aural-accent)" />
+      <circle cx="28" cy="16" r="1.5" fill="var(--aural-accent)" />
+      <circle cx="28" cy="23.5" r="1.5" fill="var(--aural-accent)" />
     </svg>
   );
 }
