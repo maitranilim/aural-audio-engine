@@ -511,7 +511,7 @@ function Home() {
         <footer className="pb-16 text-center text-xs text-subtle">
           Made by{" "}
           <a
-            href="https://x.com/Confid"
+            href="https://x.com/confid_sh"
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg"
