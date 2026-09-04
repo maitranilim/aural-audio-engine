@@ -508,7 +508,18 @@ function Home() {
         <AtlasSection onPick={(q) => void runClassify(q)} disabled={mode !== "idle"} />
         <AboutSection onReplayIntro={() => setTour(true)} />
 
-        <footer className="pb-16 text-center text-xs text-subtle">Made by Nilim</footer>
+        <footer className="pb-16 text-center text-xs text-subtle">
+          Made by{" "}
+          <a
+            href="https://x.com/Confid"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg"
+            aria-label="confid on X (opens in a new tab)"
+          >
+            confid
+          </a>
+        </footer>
       </div>
       {tour ? (
         <Onboarding
