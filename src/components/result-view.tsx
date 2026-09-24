@@ -1,11 +1,4 @@
-import {
-  Bookmark,
-  BookmarkCheck,
-  Check,
-  Copy,
-  GitCompareArrows,
-  Share2,
-} from "lucide-react";
+import { Bookmark, BookmarkCheck, Check, Copy, GitCompareArrows, Share2 } from "lucide-react";
 import { useState } from "react";
 import { PreviewPlayer } from "@/components/preview-player";
 import type { CatalogHit, Classification } from "@/lib/types";
@@ -93,8 +86,8 @@ export function ResultView({
     : isCatalogEstimate
       ? "Catalog match · taxonomy estimate"
       : classification.found
-      ? "Classifier + catalog match"
-      : "Taxonomy estimate · recording unconfirmed";
+        ? "Classifier + catalog match"
+        : "Taxonomy estimate · recording unconfirmed";
 
   const markFeedback = (next: "copied" | "shared" | "error") => {
     setFeedback(next);
@@ -149,47 +142,53 @@ export function ResultView({
   return (
     <div className="stagger-in mx-auto grid w-full max-w-5xl gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)]">
       <section className="glass glass-sheen overflow-hidden rounded-[32px] p-3">
-        <div className="overflow-hidden rounded-[20px] bg-bg-elevated">
-          {art ? (
-            <img
-              src={art}
-              alt={`${title} album artwork`}
-              onError={() => setArtFailed(true)}
-              loading="lazy"
-              decoding="async"
-              className="aspect-square w-full object-cover outline outline-1 -outline-offset-1 outline-white/10"
-            />
-          ) : (
-            <div className="flex aspect-square items-center justify-center bg-fg/5">
-              <div className="text-center">
-                <div className="font-display text-4xl text-fg/30">
-                  {(title[0] ?? "?").toUpperCase()}
+        {/* Below lg the card sits above the lineage, so a full-width square
+            cover would push the genre ladder off a phone screen. */}
+        <div className="flex items-center gap-4 lg:block">
+          <div className="w-28 shrink-0 overflow-hidden rounded-[20px] bg-bg-elevated sm:w-36 lg:w-auto">
+            {art ? (
+              <img
+                src={art}
+                alt={`${title} album artwork`}
+                onError={() => setArtFailed(true)}
+                loading="lazy"
+                decoding="async"
+                className="aspect-square w-full object-cover outline outline-1 -outline-offset-1 outline-white/10"
+              />
+            ) : (
+              <div className="flex aspect-square items-center justify-center bg-fg/5">
+                <div className="text-center">
+                  <div className="font-display text-4xl text-fg/30">
+                    {(title[0] ?? "?").toUpperCase()}
+                  </div>
+                  <div className="mt-2 hidden text-xs text-subtle lg:block">No artwork</div>
                 </div>
-                <div className="mt-2 text-xs text-subtle">No artwork</div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+          <div className="min-w-0 py-2 pr-2 lg:px-3 lg:pb-0 lg:pt-4">
+            <h2
+              id="result-title"
+              tabIndex={-1}
+              className="break-words font-display text-xl font-semibold leading-snug tracking-tight outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4"
+            >
+              {title}
+            </h2>
+            <p className="mt-1 break-words text-sm text-muted">{artist}</p>
+            <p className="mt-1 text-xs text-subtle">
+              {[classification.album || catalog?.album, classification.year || catalog?.year]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          </div>
         </div>
-        <div className="px-3 pb-3 pt-4">
-          <h2
-            id="result-title"
-            tabIndex={-1}
-            className="font-display text-xl font-semibold leading-snug tracking-tight outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:outline-offset-4"
-          >
-            {title}
-          </h2>
-          <p className="mt-1 text-sm text-muted">{artist}</p>
-          <p className="mt-1 text-xs text-subtle">
-            {[classification.album || catalog?.album, classification.year || catalog?.year]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
-          {preview ? (
-            <div className="mt-4">
-              <PreviewPlayer src={preview} title={title} />
-            </div>
-          ) : null}
-        </div>
+        {preview ? (
+          <div className="px-3 pb-3 pt-4">
+            <PreviewPlayer src={preview} title={title} />
+          </div>
+        ) : (
+          <div className="hidden pb-3 lg:block" />
+        )}
       </section>
 
       <section className="glass glass-sheen rounded-[32px] p-6 sm:p-8">

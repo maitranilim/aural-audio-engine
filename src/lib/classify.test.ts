@@ -88,6 +88,29 @@ describe("curated examples", () => {
     assert.equal(classification.artist, "Target Artist");
     assert.match(classification.rationale, /Catalog-only/);
   });
+
+  it("uses fingerprint genre tags to fill all three levels", () => {
+    const recognized: CatalogHit = {
+      title: "Some Chords",
+      artist: "deadmau5",
+      album: "",
+      artworkUrl: null,
+      previewUrl: null,
+      year: 2010,
+      catalogGenre: "Dance",
+      source: "itunes",
+    };
+    const classification = fallbackFromCatalog(
+      "Some Chords deadmau5",
+      [recognized],
+      "missing-key",
+      ["Dance", "Electronic", "House"],
+    );
+    assert.equal(classification.genre, "EDM");
+    assert.equal(classification.subgenre, "House");
+    assert.notEqual(classification.microgenre, "House");
+    assert.notEqual(classification.microgenre, "EDM");
+  });
 });
 
 describe("bounded upstream requests", () => {

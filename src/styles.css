@@ -325,6 +325,35 @@ html[data-theme="light"] {
   animation: mic-pulse 1.6s ease-out infinite;
 }
 
+/* Live input level from the recorder (see setMicLevel), 0–1. */
+.mic-level {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  opacity: 0.18;
+  transform: scale(calc(1 + var(--mic-level, 0) * 0.6));
+  transition: transform 80ms linear;
+}
+
+.mic-countdown {
+  fill: none;
+  stroke: var(--color-accent, currentColor);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  animation-name: mic-countdown;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes mic-countdown {
+  to {
+    stroke-dashoffset: 100;
+  }
+}
+
 .hero-cluster {
   padding-top: 14vh;
 }
@@ -420,6 +449,7 @@ html[data-theme="light"] {
   .eq span,
   .stagger-in > *,
   .mic-ring,
+  .mic-countdown,
   .scroll-cue,
   .caret-blink {
     animation: none !important;
