@@ -213,11 +213,14 @@ export async function beginRecording(
     onVoiceStart?: () => void;
     /** Input level, 0–1, sampled every VOICE_SAMPLE_MS. */
     onLevel?: (level: number) => void;
-    onAutoStop?: (reason: "silence" | "limit") => void;
+    onAutoStop?: (reason: "silence" | "limit" | "device") => void;
   } = {},
 ): Promise<ActiveRecording> {
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
     throw new Error("NO_MIC");
+  }
+  if (typeof MediaRecorder === "undefined") {
+    throw new Error("NO_RECORDER");
   }
 
   let stream: MediaStream;
@@ -246,7 +249,12 @@ export async function beginRecording(
   } catch {
     // A browser can advertise a type through isTypeSupported and still refuse
     // it here. Let it choose its own rather than losing the recording.
-    recorder = new MediaRecorder(stream);
+    try {
+      recorder = new MediaRecorder(stream);
+    } catch (err) {
+      stream.getTracks().forEach((t) => t.stop());
+      throw err;
+    }
   }
 
   const chunks: BlobPart[] = [];
@@ -257,10 +265,18 @@ export async function beginRecording(
   let released = false;
   let activityTimer: number | undefined;
   let audioContext: AudioContext | undefined;
+  const audioTrack = stream.getAudioTracks()[0];
+  const onTrackEnded = () => {
+    if (released) return;
+    void stop();
+    opts.onAutoStop?.("device");
+  };
+  audioTrack?.addEventListener("ended", onTrackEnded);
   const release = () => {
     if (released) return;
     released = true;
     if (activityTimer !== undefined) window.clearInterval(activityTimer);
+    audioTrack?.removeEventListener("ended", onTrackEnded);
     void audioContext?.close().catch(() => {});
     stream.getTracks().forEach((t) => t.stop());
   };
@@ -300,7 +316,7 @@ export async function beginRecording(
       // iOS creates contexts suspended outside a direct user gesture, and
       // getUserMedia's await has already left that gesture. A suspended
       // analyser reads silence, so the level meter and auto-stop go dead.
-      if (audioContext.state === "suspended") void audioContext.resume().catch(() => {});
+      if (audioContext.state === "suspended") await audioContext.resume();
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 1024;
