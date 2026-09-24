@@ -1,35 +1,22 @@
 # Aural
 
-Aural maps a named song to a three-level genre lineage: genre, subgenre, and microgenre. It supports typed lookup and optional voice transcription, then shows catalog metadata, a short preview when available, and nearby scenes.
+I built Aural to answer a question that broad music tags handle badly: where does a song sit between a genre, a subgenre, and a smaller scene?
 
-## Product boundary
+Search for a track by name, or use voice input when it is available. Aural looks up catalog information, shows a short preview when the source provides one, and returns a three-level lineage with nearby scenes. The three labels must be distinct; `Dance → Dance → Dance` is not a useful answer.
 
-The three levels are always distinct. Aural does not present a broad catalog tag such as `Dance` three times as a lineage. When a live classifier is unavailable, the result is labeled as a lower-confidence catalog-based fallback.
+## What the result means
 
-## Run locally
+Aural can use a live classifier when configured. Without one, it falls back to catalog information and labels the result as lower confidence. A lineage is a useful way to explore music, not a claim that every genre boundary is objective.
+
+## Run it
 
 ```bash
 npm install
 npm run dev
 ```
 
-Useful checks:
+For checks, run `npm run typecheck`, `npm test`, and `npm run build`.
 
-```bash
-npm run typecheck
-npm test
-npm run build
-```
+The app uses React, TypeScript, TanStack Start, Tailwind CSS, and Zod. Catalog lookups use iTunes Search and Deezer; optional classification and transcription run server-side. API keys stay on the server.
 
-## Stack
-
-TanStack Start, React, TypeScript, Tailwind CSS, Zod, iTunes Search, Deezer, and optional xAI speech-to-text/classification. API keys remain server-side.
-
-## Repository layout
-
-- `src/components/` — the search flow and result UI
-- `src/lib/classify.ts` — validation, catalog lookup, classification, and fallback behavior
-- `src/lib/taxonomy.ts` — the distinct-level taxonomy rules
-- `src/lib/speech.ts` — microphone capture
-
-Created and maintained by [maitranilim](https://github.com/maitranilim).
+Start with `src/lib/classify.ts` for the lookup and fallback logic, `src/lib/taxonomy.ts` for the distinct-level rules, and `src/components/` for the search and result experience.
