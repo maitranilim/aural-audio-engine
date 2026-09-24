@@ -19,7 +19,7 @@ import { SearchDock } from "@/components/search-dock";
 import { SiteHeader } from "@/components/site-header";
 import { useTrackedSection } from "@/lib/use-scroll-reveal";
 import { Onboarding } from "@/components/onboarding";
-import { classifyTrack, transcribeClip } from "@/lib/classify";
+import { classifyTrack, recognizeClip } from "@/lib/classify";
 import { EXAMPLES } from "@/lib/constants";
 import { clearHistory, loadHistory, pushHistory } from "@/lib/history";
 import { hasOnboarded } from "@/lib/onboarding";
@@ -27,11 +27,25 @@ import { scrollToId } from "@/lib/scroll-to";
 import { isSaved, loadSaved, removeSaved, toggleSaved } from "@/lib/saved";
 import { beginRecording, blobToBase64, toWav, type ActiveRecording } from "@/lib/speech";
 import { ensureDistinct } from "@/lib/taxonomy";
-import type { CatalogHit, Classification, HistoryItem } from "@/lib/types";
+import type { CatalogHit, Classification, ClassifyOk, HistoryItem } from "@/lib/types";
 
 export const Route = createFileRoute("/")({ component: Home });
 
+/**
+ * The mic meter updates ~20×/s. Routing that through React state would
+ * re-render the whole page each tick, which stutters on phones; a CSS custom
+ * property repaints only the ring that reads it.
+ */
+function setMicLevel(level: number) {
+  document.documentElement.style.setProperty("--mic-level", level.toFixed(3));
+}
+
 type Mode = "idle" | "listening" | "recording" | "transcribing" | "classifying";
+
+/** Long enough for a fingerprint to lock on, short enough to feel instant. */
+const LISTEN_MAX_MS = 12_000;
+/** A spoken title can end the clip early, but never before this. */
+const LISTEN_MIN_MS = 5_000;
 
 type CompareBase = {
   query: string;
@@ -43,6 +57,7 @@ function Home() {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("idle");
   const [heardSpeech, setHeardSpeech] = useState(false);
+  const [secondsLeft, setSecondsLeft] = useState(LISTEN_MAX_MS / 1000);
   const [classification, setClassification] = useState<Classification | null>(null);
   const [catalog, setCatalog] = useState<CatalogHit | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
@@ -59,6 +74,7 @@ function Home() {
   // `mode` only flips to "recording" after getUserMedia resolves, so it cannot
   // gate the mic button while the permission prompt is open. This can.
   const startingRef = useRef(false);
+  const listenStartRef = useRef(0);
   const toolRef = useTrackedSection<HTMLElement>("tool");
 
   useEffect(() => {
@@ -103,6 +119,31 @@ function Home() {
     });
   }, [lenis]);
 
+  const showResult = useCallback(
+    (q: string, result: ClassifyOk) => {
+      const mapped = ensureDistinct(result.classification);
+      setClassification(mapped);
+      setCatalog(result.catalog);
+      const url = new URL(window.location.href);
+      url.searchParams.set("q", q);
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${url.pathname}${url.search}${url.hash}`,
+      );
+      const item: HistoryItem = {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        savedAt: Date.now(),
+        query: q,
+        classification: mapped,
+        catalog: result.catalog,
+      };
+      setHistory(pushHistory(item));
+      goResult();
+    },
+    [goResult],
+  );
+
   const runClassify = useCallback(
     async (raw: string) => {
       const q = raw.trim();
@@ -121,25 +162,7 @@ function Home() {
           setErrorMessage(result.error);
           return;
         }
-        const mapped = ensureDistinct(result.classification);
-        setClassification(mapped);
-        setCatalog(result.catalog);
-        const url = new URL(window.location.href);
-        url.searchParams.set("q", q);
-        window.history.replaceState(
-          window.history.state,
-          "",
-          `${url.pathname}${url.search}${url.hash}`,
-        );
-        const item: HistoryItem = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          savedAt: Date.now(),
-          query: q,
-          classification: mapped,
-          catalog: result.catalog,
-        };
-        setHistory(pushHistory(item));
-        goResult();
+        showResult(q, result);
       } catch (err) {
         if (requestId === requestIdRef.current) {
           setErrorMessage(err instanceof Error ? err.message : "Classification failed");
@@ -148,7 +171,7 @@ function Home() {
         if (requestId === requestIdRef.current) setMode("idle");
       }
     },
-    [goResult],
+    [showResult],
   );
 
   useEffect(() => {
@@ -176,11 +199,13 @@ function Home() {
     if (!rec) return;
     stoppingRef.current = true;
     recRef.current = null;
+    const requestId = ++requestIdRef.current;
     setMode("transcribing");
+    setMicLevel(0);
     try {
       const captured = await rec.stop();
       if (captured.blob.size < 200) {
-        toast.error("Didn't catch any audio. Tap the mic, speak, then tap again.");
+        toast.error("Didn't catch any audio. Tap the mic while the song plays.");
         setMode("idle");
         return;
       }
@@ -195,37 +220,47 @@ function Home() {
       } catch {
         /* send the original clip */
       }
-      if (durationSec > 0 && durationSec < 0.35) {
-        toast.error("That was too short. Hold the mic open while you say the song.");
+      if (durationSec > 0 && durationSec < 1) {
+        toast.error("That was too short. Let it listen for a few seconds.");
         setMode("idle");
         return;
       }
       // Only digital silence is worth refusing to send. A quiet-but-audible
-      // clip still transcribes, and the mic is provably granted by this point,
-      // so the old "check permission" advice pointed at the wrong thing.
+      // clip still has a fingerprint, and the mic is provably granted by now.
       if (peak < 0.005) {
         toast.error("No sound came through. Check your input device and try again.");
         setMode("idle");
         return;
       }
       const audioBase64 = await blobToBase64(payload.blob);
-      const transcribed = await transcribeClip({
+      const recognized = await recognizeClip({
         data: { audioBase64, mimeType: payload.mimeType },
       });
-      if (transcribed.ok && transcribed.text) {
-        setQuery(transcribed.text);
-        await runClassify(transcribed.text);
+      if (requestId !== requestIdRef.current) return;
+      if (!recognized.ok) {
+        toast.error(recognized.error);
+        setMode("idle");
         return;
       }
-      toast.error(transcribed.ok ? "Didn't catch any words." : transcribed.error);
+      setQuery(recognized.heard);
+      setErrorMessage(null);
+      setRetryQuery(recognized.heard);
+      showResult(recognized.heard, recognized);
+      toast.success(
+        recognized.via === "fingerprint"
+          ? `Recognized “${recognized.classification.title}” by ${recognized.classification.artist}`
+          : `Heard “${recognized.heard}”`,
+      );
       setMode("idle");
     } catch {
-      toast.error("Recording failed. Type the song instead.");
-      setMode("idle");
+      if (requestId === requestIdRef.current) {
+        toast.error("Couldn't identify that clip. Type the song instead.");
+        setMode("idle");
+      }
     } finally {
       stoppingRef.current = false;
     }
-  }, [runClassify]);
+  }, [showResult]);
 
   const onMic = useCallback(() => {
     if (mode === "recording") {
@@ -239,9 +274,17 @@ function Home() {
         // The recorder owns voice-end detection and the 20s cap, so the UI can
         // never disagree with it about whether the mic is still open.
         setHeardSpeech(false);
+        setSecondsLeft(LISTEN_MAX_MS / 1000);
+        setMicLevel(0);
+        setClassification(null);
+        setCatalog(null);
+        setErrorMessage(null);
+        listenStartRef.current = Date.now();
         const rec = await beginRecording({
-          maxMs: 20000,
+          maxMs: LISTEN_MAX_MS,
+          minMs: LISTEN_MIN_MS,
           onVoiceStart: () => setHeardSpeech(true),
+          onLevel: setMicLevel,
           onAutoStop: () => {
             if (recRef.current === rec) void finishRecording();
           },
@@ -253,7 +296,9 @@ function Home() {
         toast.error(
           denied
             ? "Microphone permission was denied. Allow it, or type the title."
-            : "Microphone isn't available. Type the song instead.",
+            : window.isSecureContext
+              ? "Microphone isn't available. Type the song instead."
+              : "The mic needs a secure (https) connection. Type the song instead.",
         );
         setMode("idle");
       } finally {
@@ -262,13 +307,24 @@ function Home() {
     })();
   }, [finishRecording, mode]);
 
+  useEffect(() => {
+    if (mode !== "recording") return;
+    const tick = () =>
+      setSecondsLeft(
+        Math.max(0, Math.ceil((LISTEN_MAX_MS - (Date.now() - listenStartRef.current)) / 1000)),
+      );
+    tick();
+    const id = window.setInterval(tick, 250);
+    return () => window.clearInterval(id);
+  }, [mode]);
+
   const hint =
     mode === "recording"
       ? heardSpeech
-        ? "Song heard — detecting when you finish"
-        : "Listening — say the song and artist"
+        ? `Hearing it — tap stop anytime · ${secondsLeft}s`
+        : `Listening — play the song or say its name · ${secondsLeft}s`
       : mode === "transcribing"
-        ? "Turning speech into a title"
+        ? "Identifying the track"
         : mode === "classifying"
           ? "Mapping genre, subgenre, and microgenre"
           : undefined;
@@ -281,6 +337,7 @@ function Home() {
       onMic={onMic}
       mode={mode}
       hint={hint}
+      listenMs={LISTEN_MAX_MS}
     />
   );
 
@@ -301,15 +358,15 @@ function Home() {
       () => document.querySelector<HTMLInputElement>('input[name="query"]')?.focus(),
       500,
     );
-  }, [classification, lenis]);
+  }, [classification, lenis, query]);
 
   const isCompareBase = Boolean(
     compareBase &&
-      classification &&
-      compareBase.classification.title.toLocaleLowerCase() ===
-        classification.title.toLocaleLowerCase() &&
-      compareBase.classification.artist.toLocaleLowerCase() ===
-        classification.artist.toLocaleLowerCase(),
+    classification &&
+    compareBase.classification.title.toLocaleLowerCase() ===
+      classification.title.toLocaleLowerCase() &&
+    compareBase.classification.artist.toLocaleLowerCase() ===
+      classification.artist.toLocaleLowerCase(),
   );
 
   const currentIsSaved = Boolean(classification && isSaved(saved, classification));
@@ -362,11 +419,7 @@ function Home() {
         <SiteHeader
           docked={docked}
           savedMenu={
-            <SavedMenu
-              items={saved}
-              onPick={openStoredMapping}
-              onRemove={removeStoredMapping}
-            />
+            <SavedMenu items={saved} onPick={openStoredMapping} onRemove={removeStoredMapping} />
           }
           compactSearch={
             <SearchDock
@@ -391,7 +444,7 @@ function Home() {
               See its lineage.
             </h1>
             <p className="mt-4 max-w-lg text-base leading-relaxed text-muted">
-              Type a title, tap a chip, or use the mic. Then scroll the method.
+              Type a title, tap a chip, or tap the mic while a song plays. Then scroll the method.
             </p>
             <div className="mt-7">{search}</div>
             <div className="mt-5 flex flex-wrap gap-2">
@@ -439,11 +492,11 @@ function Home() {
               <Loader2 className="size-5 shrink-0 animate-spin text-accent" aria-hidden="true" />
               <div>
                 <p className="font-display text-xl font-semibold tracking-tight">
-                  {mode === "transcribing" ? "Listening for the title" : "Reading the shelf"}
+                  {mode === "transcribing" ? "Identifying the track" : "Reading the shelf"}
                 </p>
                 <p className="mt-1 text-sm text-muted">
                   {mode === "transcribing"
-                    ? "Turning the recording into a searchable song name."
+                    ? "Matching the audio fingerprint, then separating genre, subgenre, and microgenre."
                     : "Matching the recording, then separating its three rungs."}
                 </p>
               </div>

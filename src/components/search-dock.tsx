@@ -12,6 +12,7 @@ export function SearchDock({
   onMic,
   mode,
   hint,
+  listenMs,
   compact = false,
 }: {
   value: string;
@@ -20,6 +21,8 @@ export function SearchDock({
   onMic: () => void;
   mode: Mode;
   hint?: string;
+  /** Length of a mic capture, drives the countdown ring. */
+  listenMs?: number;
   compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,13 +31,13 @@ export function SearchDock({
   const busy = mode === "classifying" || mode === "transcribing";
   const live = mode === "recording" || mode === "listening";
   const canSubmit = !busy && !live && value.trim().length > 0;
-  const micLabel = live ? "Stop recording" : "Record a song name";
+  const micLabel = live ? "Stop listening and identify" : "Identify a song playing nearby";
   const statusText =
     hint ??
     (live
-      ? "Listening for a song and artist"
+      ? "Listening for a song"
       : mode === "transcribing"
-        ? "Turning speech into a title"
+        ? "Identifying the track"
         : mode === "classifying"
           ? "Mapping genre, subgenre, and microgenre"
           : "");
@@ -87,7 +90,7 @@ export function SearchDock({
           type="search"
           value={value}
           onChange={(e) => onChange(e.target.value.slice(0, QUERY_MAX_LENGTH))}
-          placeholder={live ? "Listening… say a song and artist" : "Song or artist"}
+          placeholder={live ? "Listening… play a song or say its name" : "Song or artist"}
           disabled={busy}
           required
           maxLength={QUERY_MAX_LENGTH}
@@ -122,7 +125,30 @@ export function SearchDock({
             live ? "mic-ring bg-accent text-accent-fg" : "glass-thin text-fg hover:bg-fg/10",
           )}
         >
-          {live ? <Square className="size-3.5" fill="currentColor" /> : <Mic className="size-5" />}
+          {live ? (
+            <>
+              <span className="mic-level" aria-hidden="true" />
+              {listenMs ? (
+                <svg
+                  className="pointer-events-none absolute -inset-1 size-[calc(100%+0.5rem)] -rotate-90"
+                  viewBox="0 0 52 52"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="26"
+                    cy="26"
+                    r="24"
+                    pathLength={100}
+                    className="mic-countdown"
+                    style={{ animationDuration: `${listenMs}ms` }}
+                  />
+                </svg>
+              ) : null}
+              <Square className="relative size-3.5" fill="currentColor" />
+            </>
+          ) : (
+            <Mic className="size-5" />
+          )}
         </button>
         <button
           type="submit"
@@ -143,7 +169,7 @@ export function SearchDock({
             <ArrowUp className="size-4 sm:hidden" />
           )}
           <span className="hidden sm:inline">
-            {mode === "classifying" ? "Mapping" : mode === "transcribing" ? "Hearing" : "Map"}
+            {mode === "classifying" ? "Mapping" : mode === "transcribing" ? "Identifying" : "Map"}
           </span>
         </button>
       </div>

@@ -25,6 +25,17 @@ export function SiteHeader({
 }) {
   const lenis = useLenis();
   const [active, setActive] = useState("tool");
+  const [scrolled, setScrolled] = useState(false);
+
+  // `docked` waits until the hero is mostly gone, but on a phone the hero's
+  // chips reach the fixed bar long before that. Back the bar as soon as
+  // anything can slide under it.
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 8);
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    return () => window.removeEventListener("scroll", update);
+  }, []);
 
   // The nav updates only when the reading line enters a different section.
   // Continuous section progress is reserved for the chapter rails.
@@ -55,7 +66,7 @@ export function SiteHeader({
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-40 border-b transition-[background-color,border-color] duration-300",
-        docked ? "border-line/60 bg-bg/95" : "border-transparent bg-transparent",
+        docked || scrolled ? "border-line/60 bg-bg/95" : "border-transparent bg-transparent",
       )}
     >
       <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">

@@ -1,8 +1,4 @@
-import {
-  createVoiceActivityState,
-  observeVoice,
-  VOICE_SAMPLE_MS,
-} from "./voice-activity";
+import { createVoiceActivityState, observeVoice, VOICE_SAMPLE_MS } from "./voice-activity";
 
 export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -212,7 +208,11 @@ const STOP_GRACE_MS = 4000;
 export async function beginRecording(
   opts: {
     maxMs?: number;
+    /** Ignore end-of-speech silence until the clip is at least this long. */
+    minMs?: number;
     onVoiceStart?: () => void;
+    /** Input level, 0–1, sampled every VOICE_SAMPLE_MS. */
+    onLevel?: (level: number) => void;
     onAutoStop?: (reason: "silence" | "limit") => void;
   } = {},
 ): Promise<ActiveRecording> {
@@ -222,8 +222,17 @@ export async function beginRecording(
 
   let stream: MediaStream;
   try {
+    // Voice processing is built for calls: noise suppression treats sustained
+    // music as background noise and gates it out, AGC pumps it, and echo
+    // cancellation removes anything the device itself is playing. All three
+    // wreck an audio fingerprint, and a plain transcriber copes fine without.
     stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 1,
+      },
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "NotAllowedError") throw err;
@@ -288,6 +297,10 @@ export async function beginRecording(
   if (AudioContextCtor) {
     try {
       audioContext = new AudioContextCtor();
+      // iOS creates contexts suspended outside a direct user gesture, and
+      // getUserMedia's await has already left that gesture. A suspended
+      // analyser reads silence, so the level meter and auto-stop go dead.
+      if (audioContext.state === "suspended") void audioContext.resume().catch(() => {});
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 1024;
@@ -295,19 +308,19 @@ export async function beginRecording(
       source.connect(analyser);
       const samples = new Float32Array(analyser.fftSize);
       let activity = createVoiceActivityState();
+      const startedAt = performance.now();
       activityTimer = window.setInterval(() => {
         if (recorder.state === "inactive") return;
         analyser.getFloatTimeDomainData(samples);
         let energy = 0;
         for (let i = 0; i < samples.length; i++) energy += (samples[i] ?? 0) ** 2;
-        const observation = observeVoice(
-          activity,
-          Math.sqrt(energy / samples.length),
-          performance.now(),
-        );
+        const rms = Math.sqrt(energy / samples.length);
+        const now = performance.now();
+        opts.onLevel?.(Math.min(1, rms * 6));
+        const observation = observeVoice(activity, rms, now);
         activity = observation.state;
         if (observation.event === "voice-start") opts.onVoiceStart?.();
-        if (observation.event === "speech-end") {
+        if (observation.event === "speech-end" && now - startedAt >= (opts.minMs ?? 0)) {
           void stop();
           opts.onAutoStop?.("silence");
         }

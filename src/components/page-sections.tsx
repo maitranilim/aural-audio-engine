@@ -159,7 +159,7 @@ function Rail({
         </div>
         <ol className="flex gap-2 md:flex-col md:gap-1 md:pl-5">
           {beats.map((b, i) => (
-            <li key={b.n} className="min-w-0">
+            <li key={b.n} className="min-w-0 flex-1 md:flex-none">
               <button
                 type="button"
                 aria-expanded={openBeat === i}
@@ -223,7 +223,7 @@ export function HowSection() {
   const { ref, railRef, step } = useChapterBeat("how", HOW_BEATS.length);
   return (
     <section id="how" ref={ref} className="chapter scroll-mt-24">
-      <div className="mx-auto grid max-w-6xl md:grid-cols-[minmax(0,240px)_1fr] lg:grid-cols-[minmax(0,280px)_1fr]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 md:grid-cols-[minmax(0,240px)_1fr] lg:grid-cols-[minmax(0,280px)_1fr]">
         <Rail
           kicker="How it works"
           title="Name. Match. Split."
@@ -243,8 +243,8 @@ export function HowSection() {
               Don’t describe the vibe.
             </h3>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted">
-              Aural needs a title, not “that tropical song from 2015.” Type it, speak it, or tap a
-              known chip. Lean On is enough.
+              Aural needs a title, not “that tropical song from 2015.” Type it, let the mic hear it
+              playing, or tap a known chip. Lean On is enough.
             </p>
             <div className="glass-strong mt-8 flex items-center gap-3 rounded-full p-2 pl-5">
               <span className="font-mono text-sm text-fg">Lean On Major Lazer</span>
@@ -258,8 +258,8 @@ export function HowSection() {
               />
               <Door
                 icon={Mic}
-                label="Speak"
-                detail="Say the song and artist. Aural stops when you finish and maps it."
+                label="Listen"
+                detail="Tap the mic while a song plays. Aural fingerprints it, or hears you say the title."
               />
               <Door
                 icon={Pointer}
@@ -373,7 +373,7 @@ export function LineageSection() {
   const [expandedGenre, setExpandedGenre] = useState("EDM");
   return (
     <section id="lineage" ref={ref} className="chapter scroll-mt-24">
-      <div className="mx-auto grid max-w-6xl md:grid-cols-[minmax(0,240px)_1fr] lg:grid-cols-[minmax(0,280px)_1fr]">
+      <div className="mx-auto grid max-w-6xl grid-cols-1 md:grid-cols-[minmax(0,240px)_1fr] lg:grid-cols-[minmax(0,280px)_1fr]">
         <Rail
           kicker="The ladder"
           title="Subgenre is not microgenre."

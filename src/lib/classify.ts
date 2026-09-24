@@ -1,7 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { ensureDistinct, isCollapsed } from "./taxonomy.ts";
-import type { CatalogHit, Classification, ClassifyResponse } from "./types.ts";
+import { AUDD_ENDPOINT, parseAuddResponse, type Recognition } from "./recognize.ts";
+import type { CatalogHit, Classification, ClassifyOk, ClassifyResponse } from "./types.ts";
 
 const QUERY_MAX = 200;
 const AUDIO_B64_MAX = 1_800_000;
@@ -9,13 +10,14 @@ const MIN_AUDIO_BYTES = 200;
 const CATALOG_TIMEOUT_MS = 5_000;
 const MODEL_TIMEOUT_MS = 15_000;
 const TRANSCRIPTION_TIMEOUT_MS = 15_000;
+const RECOGNITION_TIMEOUT_MS = 20_000;
 const MAX_REMOTE_URL_LENGTH = 2_048;
 const MAX_MODEL_TEXT = 100_000;
 const MAX_TRANSCRIPTION_TEXT = QUERY_MAX;
 const CACHE_MAX = 40;
 
-const cache = new Map<string, ClassifyResponse>();
-const inFlight = new Map<string, Promise<ClassifyResponse>>();
+const cache = new Map<string, ClassifyOk>();
+const inFlight = new Map<string, Promise<ClassifyOk>>();
 
 export class RequestTimeoutError extends Error {
   constructor() {
@@ -100,7 +102,7 @@ function hasControlCharacters(value: string) {
   });
 }
 
-function remember(key: string, value: ClassifyResponse) {
+function remember(key: string, value: ClassifyOk) {
   // Refresh an existing entry so this small map behaves like an LRU cache.
   cache.delete(key);
   if (cache.size >= CACHE_MAX) {
@@ -439,9 +441,16 @@ async function askModel(
   return toClassification(classificationSchema.parse(extractJson(text)));
 }
 
+/**
+ * Evidence from an audio fingerprint match. It pins the recording exactly, and
+ * its genre tags are finer than a text search's single `primaryGenreName`.
+ */
+export type RecognitionHint = { hit: CatalogHit; genres: string[] };
+
 async function classifySong(
   query: string,
   candidates: CatalogHit[],
+  hint?: RecognitionHint,
   parentSignal?: AbortSignal,
 ): Promise<Classification> {
   const candidateBlock =
@@ -479,7 +488,11 @@ Worked examples (do not collapse these):
 - Around the World — Daft Punk → genre: EDM, subgenre: House, microgenre: French House
 
 User query: ${query}
-
+${
+  hint
+    ? `\nAudio fingerprint match (the exact recording that was playing — trust it): "${hint.hit.title}" — ${hint.hit.artist}${hint.hit.album ? ` [${hint.hit.album}]` : ""}${hint.hit.year ? ` (${hint.hit.year})` : ""}${hint.genres.length ? `\nStore genre tags: ${hint.genres.join(", ")}` : ""}\n`
+    : ""
+}
 Catalog candidates:
 ${candidateBlock}
 
@@ -690,9 +703,16 @@ export function fallbackFromCatalog(
   query: string,
   hits: CatalogHit[],
   reason: "missing-key" | "upstream-error",
+  genreTags: string[] = [],
 ): Classification {
   const hit = pickCatalogForQuery(hits, query);
-  const catalogGenre = hit?.catalogGenre?.trim() || "Pop";
+  const catalogGenre = hit?.catalogGenre?.trim() || genreTags[0] || "Pop";
+  // Store tags run broad → narrow ("Dance", "Electronic", "House"), so feed
+  // them down the ladder and let ensureDistinct keep the ones it can place.
+  const tags = [
+    catalogGenre,
+    ...genreTags.filter((t) => t.toLowerCase() !== catalogGenre.toLowerCase()),
+  ];
   const rationale = hit
     ? "Catalog-only result: the recording came from a public catalog; lineage detail is a best-effort split of its broad catalog tag because live AI classification is unavailable."
     : reason === "missing-key"
@@ -707,9 +727,9 @@ export function fallbackFromCatalog(
     artist: hit?.artist ?? "",
     album: hit?.album ?? "",
     year: hit?.year ?? null,
-    genre: catalogGenre,
-    subgenre: catalogGenre,
-    microgenre: catalogGenre,
+    genre: tags[0],
+    subgenre: tags[1] ?? tags[0],
+    microgenre: tags[2] ?? tags[1] ?? tags[0],
     confidence: hit ? 0.3 : 0.1,
     rationale,
     era: hit?.year ? String(hit.year) : "",
@@ -721,7 +741,7 @@ export function fallbackFromCatalog(
   });
 }
 
-async function classifyQuery(query: string): Promise<ClassifyResponse> {
+async function classifyQuery(query: string, hint?: RecognitionHint): Promise<ClassifyOk> {
   const key = cacheKey(query);
   const cached = cache.get(key);
   if (cached) {
@@ -735,29 +755,32 @@ async function classifyQuery(query: string): Promise<ClassifyResponse> {
   // The built-in atlas is the offline demo contract. Do not make a known
   // example wait on a public catalog or a model that may be unavailable.
   if (!apiKey && curated) {
-    const result: ClassifyResponse = {
+    const result: ClassifyOk = {
       ok: true,
       classification: curated,
-      catalog: null,
+      catalog: hint?.hit ?? null,
       query,
     };
     remember(key, result);
     return result;
   }
 
-  const candidates = await searchCatalog(query);
+  const searched = await searchCatalog(query);
+  // A fingerprint match is the strongest candidate we can have; keep it first
+  // so the fallback path and the catalog pick both see it.
+  const candidates = hint ? [hint.hit, ...searched] : searched;
 
   let classification: Classification;
   let catalogOnly = false;
   let cacheable = true;
 
   if (!apiKey) {
-    classification = fallbackFromCatalog(query, candidates, "missing-key");
+    classification = fallbackFromCatalog(query, candidates, "missing-key", hint?.genres);
     catalogOnly = true;
     cacheable = false;
   } else {
     try {
-      classification = await classifySong(query, candidates);
+      classification = await classifySong(query, candidates, hint);
     } catch {
       // The UI can still show a catalog-backed best-effort result when xAI is
       // unavailable, times out, or returns malformed JSON. Do not cache this
@@ -765,7 +788,7 @@ async function classifyQuery(query: string): Promise<ClassifyResponse> {
       if (curated) {
         classification = curated;
       } else {
-        classification = fallbackFromCatalog(query, candidates, "upstream-error");
+        classification = fallbackFromCatalog(query, candidates, "upstream-error", hint?.genres);
         catalogOnly = true;
       }
       cacheable = false;
@@ -791,7 +814,11 @@ async function classifyQuery(query: string): Promise<ClassifyResponse> {
     }
   }
 
-  const result: ClassifyResponse = {
+  // The fingerprint service already knows the artwork and preview for the
+  // exact recording; never show less than it did.
+  if (!catalog && hint) catalog = hint.hit;
+
+  const result: ClassifyOk = {
     ok: true,
     classification,
     catalog,
@@ -886,99 +913,202 @@ export function validateTranscriptionInput(input: unknown): {
   return parsed.data;
 }
 
+function classifyShared(query: string, hint?: RecognitionHint): Promise<ClassifyOk> {
+  const key = cacheKey(query);
+  const existing = inFlight.get(key);
+  if (existing) return existing;
+
+  const pending = classifyQuery(query, hint);
+  inFlight.set(key, pending);
+  void pending
+    .finally(() => {
+      if (inFlight.get(key) === pending) inFlight.delete(key);
+    })
+    .catch(() => {});
+  return pending;
+}
+
 export const classifyTrack = createServerFn({ method: "POST" })
   .validator((input: unknown) => validateClassifyInput(input))
-  .handler(async ({ data }): Promise<ClassifyResponse> => {
-    const key = cacheKey(data.query);
-    const existing = inFlight.get(key);
-    if (existing) return existing;
+  .handler(async ({ data }): Promise<ClassifyResponse> => classifyShared(data.query));
 
-    const pending = classifyQuery(data.query);
-    inFlight.set(key, pending);
-    try {
-      return await pending;
-    } finally {
-      if (inFlight.get(key) === pending) inFlight.delete(key);
+function audioExtension(mime: string) {
+  return mime.includes("wav") || mime === "audio/wave" || mime === "audio/x-wav"
+    ? "wav"
+    : mime.includes("webm")
+      ? "webm"
+      : mime.includes("ogg")
+        ? "ogg"
+        : mime.includes("mpeg") || mime.includes("mp3")
+          ? "mp3"
+          : mime === "audio/aac"
+            ? "aac"
+            : "m4a";
+}
+
+type Clip = { bin: Buffer; mime: string; ext: string };
+
+function decodeClip(data: { audioBase64: string; mimeType: string }): Clip | null {
+  const mime = data.mimeType.split(";", 1)[0]?.trim().toLowerCase() || "audio/webm";
+  const bin = Buffer.from(data.audioBase64, "base64");
+  if (bin.length < MIN_AUDIO_BYTES) return null;
+  return { bin, mime, ext: audioExtension(mime) };
+}
+
+type Transcription = { ok: true; text: string } | { ok: false; error: string };
+
+async function transcribeAudio(clip: Clip, apiKey: string): Promise<Transcription> {
+  const { bin, mime, ext } = clip;
+  const form = new FormData();
+  form.append("language", "en");
+  form.append("format", "true");
+  form.append("keyterm", "song title");
+  form.append("keyterm", "artist");
+  form.append("keyterm", "album");
+  form.append("file", new Blob([new Uint8Array(bin)], { type: mime }), `clip.${ext}`);
+
+  try {
+    const body = await withRequestTimeout(async (signal) => {
+      const res = await fetch("https://api.x.ai/v1/stt", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: form,
+        signal,
+      });
+
+      if (!res.ok) {
+        // Consume the body while the deadline is active, but never copy an
+        // upstream response into logs: it can contain request identifiers or
+        // other data that is not useful to the client.
+        await res.text();
+        throw new UpstreamResponseError(res.status);
+      }
+      return await res.json();
+    }, TRANSCRIPTION_TIMEOUT_MS);
+
+    const parsed = z.object({ text: z.string().max(MAX_TRANSCRIPTION_TEXT) }).safeParse(body);
+    if (!parsed.success) return { ok: false, error: "Didn't catch any words. Try again." };
+    const text = parsed.data.text.trim();
+    if (!text) return { ok: false, error: "Didn't catch any words. Try again." };
+    return { ok: true, text };
+  } catch (error) {
+    if (error instanceof RequestTimeoutError) {
+      return { ok: false, error: "Voice request timed out. Try typing the title." };
     }
-  });
+    if (error instanceof UpstreamResponseError) {
+      console.error(`xAI /v1/stt ${error.status} (${ext}, ${bin.length} bytes)`);
+      if (error.status === 413) {
+        return { ok: false, error: "That clip was too long. Try a shorter one." };
+      }
+      if (error.status === 415 || error.status === 400) {
+        return {
+          ok: false,
+          error: "That recording format wasn't accepted. Try typing the title.",
+        };
+      }
+    } else {
+      console.error("xAI /v1/stt request failed", error);
+    }
+    return { ok: false, error: "Could not transcribe that clip. Try typing the title." };
+  }
+}
 
 export const transcribeClip = createServerFn({ method: "POST" })
   .validator((input: unknown) => validateTranscriptionInput(input))
-  .handler(async ({ data }): Promise<{ ok: true; text: string } | { ok: false; error: string }> => {
+  .handler(async ({ data }): Promise<Transcription> => {
     const apiKey = process.env.XAI_API_KEY?.trim();
     if (!apiKey) {
       return { ok: false, error: "Voice input is unavailable right now." };
     }
-
-    const mime = data.mimeType.split(";", 1)[0]?.trim().toLowerCase() || "audio/webm";
-    const ext =
-      mime.includes("wav") || mime === "audio/wave" || mime === "audio/x-wav"
-        ? "wav"
-        : mime.includes("webm")
-          ? "webm"
-          : mime.includes("ogg")
-            ? "ogg"
-            : mime.includes("mpeg") || mime.includes("mp3")
-              ? "mp3"
-              : mime === "audio/aac"
-                ? "aac"
-                : "m4a";
-
-    const bin = Buffer.from(data.audioBase64, "base64");
-    if (bin.length < MIN_AUDIO_BYTES) {
+    const clip = decodeClip(data);
+    if (!clip) {
       return { ok: false, error: "That recording was empty. Try speaking for a little longer." };
     }
+    return transcribeAudio(clip, apiKey);
+  });
 
-    const form = new FormData();
-    form.append("language", "en");
-    form.append("format", "true");
-    form.append("keyterm", "song title");
-    form.append("keyterm", "artist");
-    form.append("keyterm", "album");
-    form.append("file", new Blob([new Uint8Array(bin)], { type: mime }), `clip.${ext}`);
+/**
+ * Fingerprint the clip against AudD. `AUDD_API_TOKEN` raises the quota; AudD
+ * still answers a small number of anonymous requests without one, so the mic
+ * is not dead on a fresh deploy.
+ */
+async function fingerprintAudio(clip: Clip): Promise<Recognition> {
+  const form = new FormData();
+  const token = process.env.AUDD_API_TOKEN?.trim();
+  if (token) form.append("api_token", token);
+  form.append("return", "apple_music,deezer");
+  form.append(
+    "file",
+    new Blob([new Uint8Array(clip.bin)], { type: clip.mime }),
+    `clip.${clip.ext}`,
+  );
 
-    try {
-      const body = await withRequestTimeout(async (signal) => {
-        const res = await fetch("https://api.x.ai/v1/stt", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}` },
-          body: form,
-          signal,
-        });
-
-        if (!res.ok) {
-          // Consume the body while the deadline is active, but never copy an
-          // upstream response into logs: it can contain request identifiers or
-          // other data that is not useful to the client.
-          await res.text();
-          throw new UpstreamResponseError(res.status);
-        }
-        return await res.json();
-      }, TRANSCRIPTION_TIMEOUT_MS);
-
-      const parsed = z.object({ text: z.string().max(MAX_TRANSCRIPTION_TEXT) }).safeParse(body);
-      if (!parsed.success) return { ok: false, error: "Didn't catch any words. Try again." };
-      const text = parsed.data.text.trim();
-      if (!text) return { ok: false, error: "Didn't catch any words. Try again." };
-      return { ok: true, text };
-    } catch (error) {
-      if (error instanceof RequestTimeoutError) {
-        return { ok: false, error: "Voice request timed out. Try typing the title." };
+  try {
+    const body = await withRequestTimeout(async (signal) => {
+      const res = await fetch(AUDD_ENDPOINT, { method: "POST", body: form, signal });
+      if (!res.ok) {
+        await res.text();
+        throw new UpstreamResponseError(res.status);
       }
-      if (error instanceof UpstreamResponseError) {
-        console.error(`xAI /v1/stt ${error.status} (${ext}, ${bin.length} bytes)`);
-        if (error.status === 413) {
-          return { ok: false, error: "That clip was too long. Try a shorter one." };
-        }
-        if (error.status === 415 || error.status === 400) {
-          return {
-            ok: false,
-            error: "That recording format wasn't accepted. Try typing the title.",
-          };
-        }
-      } else {
-        console.error("xAI /v1/stt request failed", error);
-      }
-      return { ok: false, error: "Could not transcribe that clip. Try typing the title." };
+      return await res.json();
+    }, RECOGNITION_TIMEOUT_MS);
+    const recognition = parseAuddResponse(body);
+    if (recognition.status === "error") {
+      console.error(
+        `AudD error ${recognition.code ?? "?"} (${clip.ext}, ${clip.bin.length} bytes)`,
+      );
     }
+    return recognition;
+  } catch (error) {
+    console.error(
+      error instanceof UpstreamResponseError
+        ? `AudD HTTP ${error.status}`
+        : error instanceof RequestTimeoutError
+          ? "AudD request timed out"
+          : "AudD request failed",
+    );
+    return { status: "error", code: null, message: "Recognition unavailable" };
+  }
+}
+
+export type RecognizeResponse =
+  (ClassifyOk & { via: "fingerprint" | "speech"; heard: string }) | { ok: false; error: string };
+
+/**
+ * One round trip for the mic: fingerprint the audio first (music playing),
+ * then fall back to transcription (someone said or sang the title / lyrics),
+ * then classify whatever named the track.
+ */
+export const recognizeClip = createServerFn({ method: "POST" })
+  .validator((input: unknown) => validateTranscriptionInput(input))
+  .handler(async ({ data }): Promise<RecognizeResponse> => {
+    const clip = decodeClip(data);
+    if (!clip) {
+      return { ok: false, error: "That recording was empty. Hold the mic near the music." };
+    }
+
+    const recognition = await fingerprintAudio(clip);
+    if (recognition.status === "match") {
+      const { hit, genres } = recognition;
+      const heard = `${hit.title} ${hit.artist}`;
+      const result = await classifyShared(heard, { hit, genres });
+      return { ...result, via: "fingerprint", heard };
+    }
+
+    const apiKey = process.env.XAI_API_KEY?.trim();
+    if (apiKey) {
+      const spoken = await transcribeAudio(clip, apiKey);
+      if (spoken.ok) {
+        const result = await classifyShared(spoken.text);
+        return { ...result, via: "speech", heard: spoken.text };
+      }
+    }
+
+    return {
+      ok: false,
+      error:
+        recognition.status === "none"
+          ? "Couldn't match that audio. Move closer to the speaker and try again."
+          : "Song recognition is unavailable right now. Type the title instead.",
+    };
   });
