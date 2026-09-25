@@ -91,8 +91,26 @@ export async function withRequestTimeout<T>(
   }
 }
 
+const normalizeCache = new Map<string, string>();
+const tokenCache = new Map<string, string[]>();
+
 function normalize(q: string) {
-  return q.trim().toLowerCase().replace(/\s+/g, " ");
+  const cached = normalizeCache.get(q);
+  if (cached) return cached;
+  const normalized = q.trim().toLowerCase().replace(/\s+/g, " ");
+  normalizeCache.set(q, normalized);
+  return normalized;
+}
+
+function queryTokens(value: string) {
+  const cached = tokenCache.get(value);
+  if (cached) return cached;
+  const tokens = normalize(value)
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .split(" ")
+    .filter((token) => token.length > 1);
+  tokenCache.set(value, tokens);
+  return tokens;
 }
 
 function hasControlCharacters(value: string) {
@@ -285,13 +303,6 @@ function scoreHit(hit: CatalogHit, title: string, artist: string) {
   if (artistQ && a === artistQ) s += 4;
   else if (artistQ && (a.includes(artistQ) || artistQ.includes(a))) s += 2;
   return s;
-}
-
-function queryTokens(value: string) {
-  return normalize(value)
-    .replace(/[^\p{L}\p{N}]+/gu, " ")
-    .split(" ")
-    .filter((token) => token.length > 1);
 }
 
 function scoreQueryHit(hit: CatalogHit, query: string) {
