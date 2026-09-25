@@ -268,10 +268,19 @@ async function searchDeezer(term: string, parentSignal?: AbortSignal): Promise<C
 }
 
 async function searchCatalog(term: string): Promise<CatalogHit[]> {
-  const [itunes, deezer] = await Promise.allSettled([searchItunes(term), searchDeezer(term)]);
-  if (itunes.status === "fulfilled" && itunes.value.length > 0) return itunes.value;
-  if (deezer.status === "fulfilled") return deezer.value;
-  return [];
+  // Return the first usable catalog response instead of waiting for the
+  // slower provider after one has already produced matches.
+  const searches = [searchItunes(term), searchDeezer(term)].map(async (search) => {
+    const hits = await search;
+    if (hits.length === 0) throw new Error("Catalog returned no matches");
+    return hits;
+  });
+
+  try {
+    return await Promise.any(searches);
+  } catch {
+    return [];
+  }
 }
 
 function scoreHit(hit: CatalogHit, title: string, artist: string) {
