@@ -70,7 +70,7 @@ export function SiteHeader({
           inert={!docked && !listening ? true : undefined}
         >
           <div className="mx-auto w-full max-w-xl px-2">
-            <div className="hidden sm:block">{compactSearch}</div>
+            <div className="hidden py-1 sm:block">{compactSearch}</div>
             {listening ? (
               <button
                 type="button"

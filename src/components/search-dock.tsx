@@ -74,7 +74,9 @@ export function SearchDock({
       <div
         className={cn(
           "glass-strong glass-sheen flex min-w-0 items-center gap-2 pl-4",
-          compact ? "gap-1.5 rounded-full p-1.5 pl-2" : "rounded-[28px] p-2",
+          compact
+            ? "gap-1.5 rounded-full p-1.5 pl-2 shadow-none ring-1 ring-line"
+            : "rounded-[28px] p-2",
           live && "ring-1 ring-accent/40",
           "focus-within:ring-2 focus-within:ring-accent/70 focus-within:ring-offset-2 focus-within:ring-offset-bg",
         )}
