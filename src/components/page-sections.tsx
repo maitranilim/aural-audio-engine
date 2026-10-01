@@ -141,8 +141,7 @@ function Rail({
                   scrollToId(`${sectionId}-beat-${i + 1}`);
                 }}
                 className={cn(
-                  "flex min-h-11 w-full items-center gap-3 rounded-full px-3 py-2 text-left md:rounded-2xl",
-                  "transition-[transform,background-color,color,opacity] hover:translate-x-1 hover:bg-fg/10 hover:text-fg active:scale-[0.98]",
+                  "fx-row flex min-h-11 w-full items-center gap-3 rounded-full px-3 py-2 text-left md:rounded-2xl",
                   i === step ? "bg-fg/10 text-fg" : "text-muted opacity-70",
                 )}
               >
@@ -422,8 +421,8 @@ export function LineageSection() {
                       aria-pressed={on}
                       onClick={() => setSelectedCorner(corner)}
                       className={cn(
-                        "min-h-11 rounded-full px-4 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
-                        on ? "bg-fg text-bg" : "glass-thin text-fg hover:bg-fg/10",
+                        "min-h-11 rounded-full px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+                        on ? "fx bg-fg text-bg" : "glass-thin fx text-fg",
                       )}
                     >
                       {corner.name}
@@ -468,7 +467,7 @@ export function LineageSection() {
                       aria-expanded={expanded}
                       aria-controls={panelId}
                       onClick={() => setExpandedGenre(expanded ? "" : group.genre)}
-                      className="flex min-h-14 w-full items-center gap-3 px-5 py-3 text-left transition-colors hover:bg-fg/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
+                      className="fx-row flex min-h-14 w-full items-center gap-3 px-5 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent"
                     >
                       <span className="font-display text-lg font-semibold">{group.genre}</span>
                       <span className="rounded-full bg-fg/10 px-2 py-1 text-[10px] text-muted">
@@ -548,9 +547,8 @@ export function AtlasSection({
             }}
             disabled={disabled}
             className={cn(
-              "glass group min-h-36 rounded-[32px] p-7 text-left",
-              "border border-transparent transition-[transform,background-color,border-color,box-shadow] ",
-              "hover:-translate-y-1 hover:border-accent/40 hover:bg-fg/10 hover:shadow-glass-hover active:translate-y-0 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50",
+              "glass fx-card group min-h-36 rounded-[32px] p-7 text-left",
+              "border border-transparent disabled:pointer-events-none disabled:opacity-50",
             )}
           >
             <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted">
@@ -584,7 +582,7 @@ export function AboutSection({ onReplayIntro }: { onReplayIntro: () => void }) {
       <button
         type="button"
         onClick={onReplayIntro}
-        className="glass-thin mt-7 min-h-11 w-fit rounded-full px-5 text-sm font-medium text-fg transition-[scale,background-color] hover:bg-fg/10 active:scale-[0.97]"
+        className="glass-thin fx mt-7 min-h-11 w-fit rounded-full px-5 text-sm font-medium text-fg"
       >
         Replay quick intro
       </button>

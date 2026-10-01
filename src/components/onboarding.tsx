@@ -85,7 +85,7 @@ export function Onboarding({
             type="button"
             onClick={() => finish()}
             aria-label="Close introduction and search"
-            className="flex size-11 items-center justify-center rounded-full text-muted transition-colors hover:bg-fg/5 hover:text-fg"
+            className="fx flex size-11 items-center justify-center rounded-full text-muted"
           >
             <X className="size-4" aria-hidden="true" />
           </button>
@@ -116,7 +116,7 @@ export function Onboarding({
             ref={primaryRef}
             type="button"
             onClick={() => finish(onTryExample)}
-            className="flex min-h-12 items-center justify-center gap-2 rounded-full bg-fg px-5 text-sm font-medium text-bg transition-transform active:scale-[0.97]"
+            className="fx flex min-h-12 items-center justify-center gap-2 rounded-full bg-fg px-5 text-sm font-medium text-bg hover:bg-accent hover:text-accent-fg"
           >
             Try Lean On
             <ArrowRight className="size-4" aria-hidden="true" />
@@ -124,7 +124,7 @@ export function Onboarding({
           <button
             type="button"
             onClick={() => finish()}
-            className="glass-thin flex min-h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-fg transition-transform active:scale-[0.97]"
+            className="glass-thin fx flex min-h-12 items-center justify-center gap-2 rounded-full px-5 text-sm font-medium text-fg"
           >
             <Search className="size-4" aria-hidden="true" />
             Use my song

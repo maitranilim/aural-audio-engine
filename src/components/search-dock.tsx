@@ -117,12 +117,11 @@ export function SearchDock({
           aria-label={micLabel}
           aria-pressed={live}
           className={cn(
-            "relative flex size-11 shrink-0 items-center justify-center rounded-full",
-            "transition-[scale,background-color,color] ",
-            "active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-50",
+            "fx relative flex size-11 shrink-0 items-center justify-center rounded-full",
+            "disabled:cursor-not-allowed disabled:opacity-50",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             compact && "hidden sm:flex",
-            live ? "mic-ring bg-accent text-accent-fg" : "glass-thin text-fg hover:bg-fg/10",
+            live ? "mic-ring bg-accent text-accent-fg" : "glass-thin text-fg",
           )}
         >
           {live ? (
@@ -155,10 +154,9 @@ export function SearchDock({
           disabled={!canSubmit}
           aria-label="Map genre"
           className={cn(
-            "flex size-11 shrink-0 items-center justify-center gap-2 rounded-full",
-            "bg-fg text-bg font-medium sm:h-11 sm:w-auto sm:px-5",
-            "transition-[scale,opacity] ",
-            "active:scale-[0.96] disabled:cursor-not-allowed disabled:opacity-40",
+            "fx flex size-11 shrink-0 items-center justify-center gap-2 rounded-full",
+            "bg-fg font-medium text-bg hover:bg-accent hover:text-accent-fg sm:h-11 sm:w-auto sm:px-5",
+            "disabled:cursor-not-allowed disabled:opacity-40",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
             compact && live && "hidden sm:flex",
           )}

@@ -110,8 +110,7 @@ export function HistoryRail({
           onClick={onClear}
           aria-label="Clear recent mappings"
           className={cn(
-            "inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs text-subtle",
-            "transition-[color,background-color] hover:bg-fg/5 hover:text-fg",
+            "fx inline-flex min-h-11 items-center gap-1 rounded-full px-3 text-xs text-subtle",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
           )}
         >
@@ -139,9 +138,7 @@ export function HistoryRail({
                     : `Use recent mapping ${title}`
                 }
                 className={cn(
-                  "glass-thin flex min-h-14 min-w-[168px] max-w-[200px] items-center gap-3 rounded-2xl p-2 pr-3 text-left",
-                  "transition-[scale,background-color] ",
-                  "active:scale-[0.96] hover:bg-fg/10",
+                  "glass-thin fx flex min-h-14 min-w-[168px] max-w-[200px] items-center gap-3 rounded-2xl p-2 pr-3 text-left",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
                 )}
               >
