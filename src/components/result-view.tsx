@@ -89,6 +89,14 @@ export function ResultView({
         ? "Classifier + catalog match"
         : "Taxonomy estimate · recording unconfirmed";
 
+  const catalogGenres = catalog
+    ? catalog.genres?.length
+      ? catalog.genres
+      : catalog.catalogGenre
+        ? [catalog.catalogGenre]
+        : []
+    : [];
+
   const markFeedback = (next: "copied" | "shared" | "error") => {
     setFeedback(next);
     window.setTimeout(() => setFeedback(null), 1800);
@@ -287,6 +295,24 @@ export function ResultView({
           <Confidence value={classification.confidence} />
           <p className="mt-2 text-xs text-subtle">{provenance}</p>
         </div>
+
+        {catalogGenres.length > 0 ? (
+          <div className="mt-6">
+            <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted">
+              Catalog genre tags
+            </div>
+            <ul className="mt-3 flex flex-wrap gap-2" aria-label="Catalog genre tags">
+              {catalogGenres.map((g) => (
+                <li
+                  key={g}
+                  className="rounded-full border border-accent/30 bg-accent/10 px-3 py-1.5 text-xs font-medium text-fg"
+                >
+                  {g}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {feedback === "error" ? (
           <p className="mt-4 text-xs text-danger" role="status">

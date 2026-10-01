@@ -134,6 +134,7 @@ export function parseAuddResponse(body: unknown): Recognition {
       previewUrl: safeUrl(apple?.previews?.[0]?.url) ?? safeUrl(deezer?.preview),
       year: parseYear(result.release_date ?? apple?.releaseDate),
       catalogGenre: genres[0] ?? null,
+      genres,
       source: apple ? "itunes" : "deezer",
     },
   };

@@ -1,7 +1,6 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemedToaster } from "@/components/themed-toaster";
-import { SmoothScroll } from "@/components/smooth-scroll";
 import { THEME_BOOT } from "@/lib/theme";
 import appCss from "../styles.css?url";
 
@@ -80,18 +79,13 @@ export const Route = createRootRoute({
     <html lang="en" suppressHydrationWarning className="antialiased">
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: STRUCTURED_DATA }}
-        />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: STRUCTURED_DATA }} />
         <HeadContent />
       </head>
       <body className="bg-bg text-fg">
         <ThemeProvider>
-          <SmoothScroll>
-            <Outlet />
-            <ThemedToaster />
-          </SmoothScroll>
+          <Outlet />
+          <ThemedToaster />
         </ThemeProvider>
         <Scripts />
       </body>

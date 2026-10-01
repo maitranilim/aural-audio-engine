@@ -6,6 +6,7 @@ export type CatalogHit = {
   previewUrl: string | null;
   year: number | null;
   catalogGenre: string | null;
+  genres?: string[];
   source: "itunes" | "deezer";
 };
 

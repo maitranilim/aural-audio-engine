@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Loader2, RefreshCw } from "lucide-react";
-import { useLenis } from "lenis/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Atmosphere } from "@/components/atmosphere";
@@ -17,7 +16,7 @@ import { ResultView } from "@/components/result-view";
 import { SavedMenu } from "@/components/saved-menu";
 import { SearchDock } from "@/components/search-dock";
 import { SiteHeader } from "@/components/site-header";
-import { useTrackedSection } from "@/lib/use-scroll-reveal";
+import { ProgressBar } from "@/components/progress-bar";
 import { Onboarding } from "@/components/onboarding";
 import { classifyTrack, recognizeClip } from "@/lib/classify";
 import { EXAMPLES } from "@/lib/constants";
@@ -42,10 +41,7 @@ function setMicLevel(level: number) {
 
 type Mode = "idle" | "listening" | "recording" | "transcribing" | "classifying";
 
-/** Long enough for a fingerprint to lock on, short enough to feel instant. */
-const LISTEN_MAX_MS = 12_000;
-/** A spoken title can end the clip early, but never before this. */
-const LISTEN_MIN_MS = 5_000;
+const LISTEN_MAX_MS = 10_000;
 
 type CompareBase = {
   query: string;
@@ -53,7 +49,6 @@ type CompareBase = {
 };
 
 function Home() {
-  const lenis = useLenis();
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("idle");
   const [heardSpeech, setHeardSpeech] = useState(false);
@@ -74,8 +69,8 @@ function Home() {
   // `mode` only flips to "recording" after getUserMedia resolves, so it cannot
   // gate the mic button while the permission prompt is open. This can.
   const startingRef = useRef(false);
+  const autoStopRef = useRef(false);
   const listenStartRef = useRef(0);
-  const toolRef = useTrackedSection<HTMLElement>("tool");
 
   useEffect(() => {
     setHistory(
@@ -89,6 +84,16 @@ function Home() {
   useEffect(() => {
     setSaved(loadSaved());
   }, []);
+
+  useEffect(
+    () => () => {
+      const rec = recRef.current;
+      recRef.current = null;
+      void rec?.stop().catch(() => {});
+      setMicLevel(0);
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     setTour(!hasOnboarded());
@@ -104,20 +109,14 @@ function Home() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!lenis) return;
-    if (tour) lenis.stop();
-    else lenis.start();
-  }, [lenis, tour]);
-
   const goResult = useCallback(() => {
     window.requestAnimationFrame(() => {
-      scrollToId("result", lenis, -96, 1.15);
+      scrollToId("result");
       window.requestAnimationFrame(() => {
         document.getElementById("result-title")?.focus({ preventScroll: true });
       });
     });
-  }, [lenis]);
+  }, []);
 
   const showResult = useCallback(
     (q: string, result: ClassifyOk) => {
@@ -248,7 +247,11 @@ function Home() {
       showResult(recognized.heard, recognized);
       toast.success(
         recognized.via === "fingerprint"
-          ? `Recognized “${recognized.classification.title}” by ${recognized.classification.artist}`
+          ? `Recognized “${recognized.classification.title}” by ${recognized.classification.artist}${
+              recognized.catalog?.genres?.length
+                ? ` · ${recognized.catalog.genres.slice(0, 3).join(", ")}`
+                : ""
+            }`
           : `Heard “${recognized.heard}”`,
       );
       setMode("idle");
@@ -271,8 +274,9 @@ function Home() {
     startingRef.current = true;
     void (async () => {
       try {
-        // The recorder owns voice-end detection and the 20s cap, so the UI can
+        // The recorder owns the time cap, so the UI can
         // never disagree with it about whether the mic is still open.
+        autoStopRef.current = false;
         setHeardSpeech(false);
         setSecondsLeft(LISTEN_MAX_MS / 1000);
         setMicLevel(0);
@@ -282,14 +286,19 @@ function Home() {
         listenStartRef.current = Date.now();
         const rec = await beginRecording({
           maxMs: LISTEN_MAX_MS,
-          minMs: LISTEN_MIN_MS,
           onVoiceStart: () => setHeardSpeech(true),
           onLevel: setMicLevel,
           onAutoStop: () => {
-            if (recRef.current === rec) void finishRecording();
+            if (recRef.current) void finishRecording();
+            else autoStopRef.current = true;
           },
         });
         recRef.current = rec;
+        if (autoStopRef.current) {
+          autoStopRef.current = false;
+          void finishRecording();
+          return;
+        }
         setMode("recording");
       } catch (err) {
         const denied = err instanceof DOMException && err.name === "NotAllowedError";
@@ -353,12 +362,12 @@ function Home() {
       `${url.pathname}${url.search}${url.hash}`,
     );
     toast.success("Pinned. Search another track to compare its lineage.");
-    scrollToId("tool", lenis, -24, 0.85);
+    scrollToId("tool");
     window.setTimeout(
       () => document.querySelector<HTMLInputElement>('input[name="query"]')?.focus(),
       500,
     );
-  }, [classification, lenis, query]);
+  }, [classification, query]);
 
   const isCompareBase = Boolean(
     compareBase &&
@@ -413,11 +422,14 @@ function Home() {
   }, []);
 
   return (
-    <main className="relative min-h-dvh overflow-x-hidden">
+    <main className="relative min-h-dvh overflow-x-clip">
+      <ProgressBar />
       <Atmosphere genre={classification?.genre} />
       <div className="relative z-10">
         <SiteHeader
           docked={docked}
+          listening={mode === "recording"}
+          onStopListening={() => void finishRecording()}
           savedMenu={
             <SavedMenu items={saved} onPick={openStoredMapping} onRemove={removeStoredMapping} />
           }
@@ -433,7 +445,7 @@ function Home() {
           }
         />
 
-        <section id="tool" ref={toolRef} className="hero-cluster flex min-h-dvh flex-col">
+        <section id="tool" className="hero-cluster flex min-h-dvh flex-col">
           <div className="mx-auto w-full max-w-3xl px-4 sm:px-6">
             <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
               Genre · Subgenre · Microgenre

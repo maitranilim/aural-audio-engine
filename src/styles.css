@@ -370,10 +370,10 @@ html[data-theme="light"] {
 
 .chapter-rail {
   position: sticky;
-  top: 5.75rem;
+  top: 4.25rem;
   z-index: 20;
   padding: 0.75rem 1rem 0.5rem;
-  background: color-mix(in srgb, var(--color-bg) 95%, transparent);
+  background: var(--color-bg);
 }
 
 @media (min-width: 768px) {
