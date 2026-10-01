@@ -121,7 +121,7 @@ export function ComparisonView({
             type="button"
             onClick={() => void shareComparison()}
             aria-label="Share this comparison"
-            className="glass-thin flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted transition-[scale,color] duration-150 hover:text-fg active:scale-[0.96]"
+            className="glass-thin flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted transition-[scale,color] hover:text-fg active:scale-[0.96]"
           >
             {shareState === "shared" ? (
               <Check className="size-3.5 text-accent" aria-hidden="true" />
@@ -134,7 +134,7 @@ export function ComparisonView({
             type="button"
             onClick={onClear}
             aria-label="Close comparison"
-            className="glass-thin flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-[scale,color] duration-150 hover:text-fg active:scale-[0.96]"
+            className="glass-thin flex size-11 shrink-0 items-center justify-center rounded-full text-muted transition-[scale,color] hover:text-fg active:scale-[0.96]"
           >
             <X className="size-4" aria-hidden="true" />
           </button>

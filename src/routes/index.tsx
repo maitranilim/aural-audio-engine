@@ -526,7 +526,7 @@ function Home() {
                 type="button"
                 onClick={() => void runClassify(retryQuery)}
                 disabled={!retryQuery || mode !== "idle"}
-                className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-fg px-5 text-sm font-medium text-bg transition-[scale,opacity] duration-150 active:scale-[0.96] disabled:opacity-50"
+                className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-fg px-5 text-sm font-medium text-bg transition-[scale,opacity] active:scale-[0.96] disabled:opacity-50"
               >
                 <RefreshCw className="size-4" aria-hidden="true" />
                 Try again

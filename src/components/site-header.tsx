@@ -87,7 +87,7 @@ export function SiteHeader({
               onClick={focusToolSearch}
               aria-label="Focus song search"
               className={cn(
-                "glass-thin min-h-11 w-full items-center justify-center gap-2 rounded-full px-3 text-sm font-medium text-muted transition-[color,background-color] duration-150 hover:bg-fg/10 hover:text-fg sm:hidden",
+                "glass-thin min-h-11 w-full items-center justify-center gap-2 rounded-full px-3 text-sm font-medium text-muted transition-[color,background-color] hover:bg-fg/10 hover:text-fg sm:hidden",
                 listening ? "hidden" : "flex",
               )}
             >
@@ -105,7 +105,7 @@ export function SiteHeader({
                 onClick={go(l.id)}
                 aria-current={active === l.id ? "location" : undefined}
                 className={cn(
-                  "rounded-full px-3 py-2 transition-[background-color,color] duration-200",
+                  "rounded-full px-3 py-2 transition-[background-color,color]",
                   active === l.id ? "bg-fg text-bg" : "hover:bg-fg/10 hover:text-fg",
                 )}
               >

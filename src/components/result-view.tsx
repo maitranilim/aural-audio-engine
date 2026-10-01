@@ -210,7 +210,7 @@ export function ResultView({
               aria-label={isSaved ? "Remove this mapping from saved" : "Save this mapping"}
               className={cn(
                 "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
-                "glass-thin transition-[scale,color,background-color] duration-150 ease-out",
+                "glass-thin transition-[scale,color,background-color] ",
                 "active:scale-[0.96]",
                 isSaved ? "bg-accent/15 text-accent" : "text-muted hover:text-fg",
               )}
@@ -233,7 +233,7 @@ export function ResultView({
               }
               className={cn(
                 "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
-                "glass-thin transition-[scale,color,background-color] duration-150 ease-out",
+                "glass-thin transition-[scale,color,background-color] ",
                 "active:scale-[0.96]",
                 isCompareBase ? "bg-accent/15 text-accent" : "text-muted hover:text-fg",
               )}
@@ -247,7 +247,7 @@ export function ResultView({
               aria-label="Copy lineage summary"
               className={cn(
                 "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted",
-                "glass-thin transition-[scale,color] duration-150 ease-out hover:text-fg",
+                "glass-thin transition-[scale,color]  hover:text-fg",
                 "active:scale-[0.96]",
               )}
             >
@@ -264,7 +264,7 @@ export function ResultView({
               aria-label="Share this mapping"
               className={cn(
                 "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted",
-                "glass-thin transition-[scale,color] duration-150 ease-out hover:text-fg",
+                "glass-thin transition-[scale,color]  hover:text-fg",
                 "active:scale-[0.96]",
               )}
             >
@@ -370,7 +370,7 @@ export function ResultView({
                     onClick={() => onSimilar(`${s.title} ${s.artist}`)}
                     className={cn(
                       "glass-thin flex h-full w-full flex-col items-start rounded-2xl px-3 py-3 text-left",
-                      "transition-[scale,background-color] duration-150 ease-out",
+                      "transition-[scale,background-color] ",
                       "active:scale-[0.96] hover:bg-fg/10",
                     )}
                   >

@@ -202,7 +202,7 @@ export function PreviewPlayer({ src, title }: { src: string; title: string }) {
         aria-label={buttonLabel}
         className={cn(
           "relative flex size-11 shrink-0 items-center justify-center rounded-full",
-          "glass-strong text-fg transition-[scale,background-color] duration-150 ease-out",
+          "glass-strong text-fg transition-[scale,background-color]",
           "active:scale-[0.96] disabled:cursor-wait disabled:opacity-70",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
         )}
