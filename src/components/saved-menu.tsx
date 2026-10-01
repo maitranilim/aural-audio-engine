@@ -20,7 +20,7 @@ export function SavedMenu({
         <button
           type="button"
           aria-label="Open saved mappings"
-          className="glass-thin relative flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition-[scale,background-color] duration-150 hover:bg-fg/10 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          className="glass-thin relative flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition-[scale,background-color] hover:bg-fg/10 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <Menu className="size-5" aria-hidden="true" />
           {items.length > 0 ? (

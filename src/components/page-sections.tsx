@@ -142,7 +142,7 @@ function Rail({
                 }}
                 className={cn(
                   "flex min-h-11 w-full items-center gap-3 rounded-full px-3 py-2 text-left md:rounded-2xl",
-                  "transition-[transform,background-color,color,opacity] duration-200 hover:translate-x-1 hover:bg-fg/10 hover:text-fg active:scale-[0.98]",
+                  "transition-[transform,background-color,color,opacity] hover:translate-x-1 hover:bg-fg/10 hover:text-fg active:scale-[0.98]",
                   i === step ? "bg-fg/10 text-fg" : "text-muted opacity-70",
                 )}
               >
@@ -549,7 +549,7 @@ export function AtlasSection({
             disabled={disabled}
             className={cn(
               "glass group min-h-36 rounded-[32px] p-7 text-left",
-              "border border-transparent transition-[transform,background-color,border-color,box-shadow] duration-150 ease-out",
+              "border border-transparent transition-[transform,background-color,border-color,box-shadow] ",
               "hover:-translate-y-1 hover:border-accent/40 hover:bg-fg/10 hover:shadow-glass-hover active:translate-y-0 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-50",
             )}
           >
