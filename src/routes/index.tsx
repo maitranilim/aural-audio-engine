@@ -466,7 +466,7 @@ function Home() {
                   type="button"
                   onClick={() => void runClassify(ex.q)}
                   disabled={mode !== "idle"}
-                  className="glass-thin h-11 rounded-full px-4 text-sm text-fg will-change-transform transition-[transform,background-color,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:bg-fg/10 hover:shadow-glass-hover active:translate-y-0 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50"
+                  className="glass-thin fx h-11 rounded-full px-4 text-sm text-fg disabled:pointer-events-none disabled:opacity-50"
                 >
                   {ex.label}
                 </button>
@@ -526,7 +526,7 @@ function Home() {
                 type="button"
                 onClick={() => void runClassify(retryQuery)}
                 disabled={!retryQuery || mode !== "idle"}
-                className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-fg px-5 text-sm font-medium text-bg transition-[scale,opacity] active:scale-[0.96] disabled:opacity-50"
+                className="fx mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-fg px-5 text-sm font-medium text-bg hover:bg-accent hover:text-accent-fg disabled:opacity-50"
               >
                 <RefreshCw className="size-4" aria-hidden="true" />
                 Try again
@@ -579,7 +579,7 @@ function Home() {
             href="https://x.com/confid_sh"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-medium text-muted underline decoration-line underline-offset-4 transition-colors hover:text-fg"
+            className="font-medium text-muted underline decoration-line underline-offset-4 transition-[color,text-decoration-color] hover:text-fg hover:decoration-accent"
             aria-label="confid on X (opens in a new tab)"
           >
             confid

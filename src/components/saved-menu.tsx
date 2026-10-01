@@ -20,7 +20,7 @@ export function SavedMenu({
         <button
           type="button"
           aria-label="Open saved mappings"
-          className="glass-thin relative flex size-11 shrink-0 items-center justify-center rounded-full text-fg transition-[scale,background-color] hover:bg-fg/10 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
+          className="glass-thin fx relative flex size-11 shrink-0 items-center justify-center rounded-full text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg"
         >
           <Menu className="size-5" aria-hidden="true" />
           {items.length > 0 ? (
@@ -69,7 +69,7 @@ export function SavedMenu({
                         setOpen(false);
                         onPick(item);
                       }}
-                      className="min-w-0 flex-1 rounded-xl px-3 py-2 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      className="fx-row min-w-0 flex-1 rounded-xl px-3 py-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       aria-label={
                         artist
                           ? `Open saved mapping ${title} by ${artist}`
@@ -85,7 +85,7 @@ export function SavedMenu({
                     <button
                       type="button"
                       onClick={() => onRemove(item)}
-                      className="flex size-11 shrink-0 items-center justify-center rounded-full text-subtle transition-colors hover:bg-fg/5 hover:text-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      className="fx flex size-11 shrink-0 items-center justify-center rounded-full text-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                       aria-label={`Remove ${title} from saved mappings`}
                     >
                       <X className="size-3.5" aria-hidden="true" />

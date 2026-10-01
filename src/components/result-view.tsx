@@ -209,10 +209,9 @@ export function ResultView({
               aria-pressed={isSaved}
               aria-label={isSaved ? "Remove this mapping from saved" : "Save this mapping"}
               className={cn(
-                "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
-                "glass-thin transition-[scale,color,background-color] ",
-                "active:scale-[0.96]",
-                isSaved ? "bg-accent/15 text-accent" : "text-muted hover:text-fg",
+                "fx flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
+                "glass-thin",
+                isSaved ? "bg-accent/15 text-accent" : "text-muted",
               )}
             >
               {isSaved ? (
@@ -232,10 +231,9 @@ export function ResultView({
                   : "Pin this mapping and compare another track"
               }
               className={cn(
-                "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
-                "glass-thin transition-[scale,color,background-color] ",
-                "active:scale-[0.96]",
-                isCompareBase ? "bg-accent/15 text-accent" : "text-muted hover:text-fg",
+                "fx flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium",
+                "glass-thin",
+                isCompareBase ? "bg-accent/15 text-accent" : "text-muted",
               )}
             >
               <GitCompareArrows className="size-3.5" aria-hidden="true" />
@@ -246,9 +244,8 @@ export function ResultView({
               onClick={() => void copy()}
               aria-label="Copy lineage summary"
               className={cn(
-                "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted",
-                "glass-thin transition-[scale,color]  hover:text-fg",
-                "active:scale-[0.96]",
+                "fx flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted",
+                "glass-thin",
               )}
             >
               {feedback === "copied" ? (
@@ -263,9 +260,8 @@ export function ResultView({
               onClick={() => void share()}
               aria-label="Share this mapping"
               className={cn(
-                "flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted",
-                "glass-thin transition-[scale,color]  hover:text-fg",
-                "active:scale-[0.96]",
+                "fx flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs font-medium text-muted",
+                "glass-thin",
               )}
             >
               <Share2 className="size-3.5" />
@@ -369,9 +365,7 @@ export function ResultView({
                     type="button"
                     onClick={() => onSimilar(`${s.title} ${s.artist}`)}
                     className={cn(
-                      "glass-thin flex h-full w-full flex-col items-start rounded-2xl px-3 py-3 text-left",
-                      "transition-[scale,background-color] ",
-                      "active:scale-[0.96] hover:bg-fg/10",
+                      "glass-thin fx flex h-full w-full flex-col items-start rounded-2xl px-3 py-3 text-left",
                     )}
                   >
                     <span className="text-sm font-medium leading-snug">{s.title}</span>
