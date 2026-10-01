@@ -741,12 +741,18 @@ export function fallbackFromCatalog(
   });
 }
 
+function withHintGenres(result: ClassifyOk, hint?: RecognitionHint): ClassifyOk {
+  if (!hint || hint.genres.length === 0) return result;
+  const base = result.catalog ?? hint.hit;
+  return { ...result, catalog: { ...base, genres: hint.genres } };
+}
+
 async function classifyQuery(query: string, hint?: RecognitionHint): Promise<ClassifyOk> {
   const key = cacheKey(query);
   const cached = cache.get(key);
   if (cached) {
     remember(key, cached);
-    return cached;
+    return withHintGenres(cached, hint);
   }
 
   const apiKey = process.env.XAI_API_KEY?.trim();
@@ -762,7 +768,7 @@ async function classifyQuery(query: string, hint?: RecognitionHint): Promise<Cla
       query,
     };
     remember(key, result);
-    return result;
+    return withHintGenres(result, hint);
   }
 
   const searched = await searchCatalog(query);
@@ -825,7 +831,7 @@ async function classifyQuery(query: string, hint?: RecognitionHint): Promise<Cla
     query,
   };
   if (cacheable) remember(key, result);
-  return result;
+  return withHintGenres(result, hint);
 }
 
 const classifyInputSchema = z

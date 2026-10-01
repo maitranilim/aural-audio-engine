@@ -13,7 +13,7 @@ export function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-const TARGET_RATE = 16000;
+const TARGET_RATE = 22050;
 
 /**
  * Container/codec pairs a MediaRecorder can actually produce, best first.
@@ -208,12 +208,10 @@ const STOP_GRACE_MS = 4000;
 export async function beginRecording(
   opts: {
     maxMs?: number;
-    /** Ignore end-of-speech silence until the clip is at least this long. */
-    minMs?: number;
     onVoiceStart?: () => void;
     /** Input level, 0–1, sampled every VOICE_SAMPLE_MS. */
     onLevel?: (level: number) => void;
-    onAutoStop?: (reason: "silence" | "limit" | "device") => void;
+    onAutoStop?: (reason: "limit" | "device") => void;
   } = {},
 ): Promise<ActiveRecording> {
   if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
@@ -264,6 +262,7 @@ export async function beginRecording(
 
   let released = false;
   let activityTimer: number | undefined;
+  const limit: { timer?: number } = {};
   let audioContext: AudioContext | undefined;
   const audioTrack = stream.getAudioTracks()[0];
   const onTrackEnded = () => {
@@ -276,6 +275,7 @@ export async function beginRecording(
     if (released) return;
     released = true;
     if (activityTimer !== undefined) window.clearInterval(activityTimer);
+    if (limit.timer !== undefined) window.clearTimeout(limit.timer);
     audioTrack?.removeEventListener("ended", onTrackEnded);
     void audioContext?.close().catch(() => {});
     stream.getTracks().forEach((t) => t.stop());
@@ -324,7 +324,6 @@ export async function beginRecording(
       source.connect(analyser);
       const samples = new Float32Array(analyser.fftSize);
       let activity = createVoiceActivityState();
-      const startedAt = performance.now();
       activityTimer = window.setInterval(() => {
         if (recorder.state === "inactive") return;
         analyser.getFloatTimeDomainData(samples);
@@ -336,10 +335,6 @@ export async function beginRecording(
         const observation = observeVoice(activity, rms, now);
         activity = observation.state;
         if (observation.event === "voice-start") opts.onVoiceStart?.();
-        if (observation.event === "speech-end" && now - startedAt >= (opts.minMs ?? 0)) {
-          void stop();
-          opts.onAutoStop?.("silence");
-        }
       }, VOICE_SAMPLE_MS);
     } catch {
       void audioContext?.close().catch(() => {});
@@ -395,11 +390,11 @@ export async function beginRecording(
 
   // Hard cap on how long the mic stays open, and tell the caller so its UI
   // follows the recorder instead of racing a timer of its own.
-  window.setTimeout(() => {
+  limit.timer = window.setTimeout(() => {
     if (recorder.state === "inactive") return;
     void stop();
     opts.onAutoStop?.("limit");
-  }, opts.maxMs ?? 20000);
+  }, opts.maxMs ?? 10000);
 
   return { stop };
 }

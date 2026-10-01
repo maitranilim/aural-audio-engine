@@ -1,10 +1,9 @@
-import { Search } from "lucide-react";
-import { useLenis } from "lenis/react";
-import { useEffect, useState, type ReactNode } from "react";
+import { Search, Square } from "lucide-react";
+import type { ReactNode } from "react";
 import { Wordmark } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { scrollToId } from "@/lib/scroll-to";
-import { subscribeActiveSection } from "@/lib/scroll-progress";
+import { useActiveSection, useScrolled } from "@/lib/use-scroll";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -18,43 +17,29 @@ export function SiteHeader({
   docked,
   compactSearch,
   savedMenu,
+  listening = false,
+  onStopListening,
 }: {
   docked: boolean;
+  listening?: boolean;
+  onStopListening?: () => void;
   compactSearch?: ReactNode;
   savedMenu?: ReactNode;
 }) {
-  const lenis = useLenis();
-  const [active, setActive] = useState("tool");
-  const [scrolled, setScrolled] = useState(false);
-
-  // `docked` waits until the hero is mostly gone, but on a phone the hero's
-  // chips reach the fixed bar long before that. Back the bar as soon as
-  // anything can slide under it.
-  useEffect(() => {
-    const update = () => setScrolled(window.scrollY > 8);
-    update();
-    window.addEventListener("scroll", update, { passive: true });
-    return () => window.removeEventListener("scroll", update);
-  }, []);
-
-  // The nav updates only when the reading line enters a different section.
-  // Continuous section progress is reserved for the chapter rails.
-  useEffect(
-    () =>
-      subscribeActiveSection((activeId) => {
-        if (activeId) setActive((prev) => (prev === activeId ? prev : activeId));
-      }),
-    [],
+  const [active, setActive] = useActiveSection(
+    LINKS.map((l) => l.id),
+    "tool",
   );
+  const scrolled = useScrolled();
 
   const go = (id: string) => (e: React.MouseEvent) => {
     e.preventDefault();
     setActive(id);
-    scrollToId(id, lenis, -72, 1.15);
+    scrollToId(id);
   };
 
   const focusToolSearch = () => {
-    scrollToId("tool", lenis, -72, 0.75);
+    scrollToId("tool");
     window.requestAnimationFrame(() => {
       document
         .querySelector<HTMLInputElement>('#tool input[name="query"]')
@@ -77,18 +62,34 @@ export function SiteHeader({
         <div
           className={cn(
             "min-w-0 overflow-hidden transition-[opacity,flex-grow] duration-300",
-            docked ? "flex-1 opacity-100" : "pointer-events-none w-0 flex-none opacity-0",
+            docked || listening
+              ? "flex-1 opacity-100"
+              : "pointer-events-none w-0 flex-none opacity-0",
           )}
-          aria-hidden={!docked}
-          inert={!docked ? true : undefined}
+          aria-hidden={!docked && !listening}
+          inert={!docked && !listening ? true : undefined}
         >
           <div className="mx-auto w-full max-w-xl px-2">
             <div className="hidden sm:block">{compactSearch}</div>
+            {listening ? (
+              <button
+                type="button"
+                onClick={onStopListening}
+                aria-label="Stop listening and identify"
+                className="mic-ring flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-accent px-3 text-sm font-medium text-accent-fg sm:hidden"
+              >
+                <Square className="size-3.5" fill="currentColor" aria-hidden="true" />
+                Stop
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={focusToolSearch}
               aria-label="Focus song search"
-              className="glass-thin flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-3 text-sm font-medium text-muted transition-[color,background-color] duration-150 hover:bg-fg/10 hover:text-fg sm:hidden"
+              className={cn(
+                "glass-thin min-h-11 w-full items-center justify-center gap-2 rounded-full px-3 text-sm font-medium text-muted transition-[color,background-color] duration-150 hover:bg-fg/10 hover:text-fg sm:hidden",
+                listening ? "hidden" : "flex",
+              )}
             >
               <Search className="size-4" aria-hidden="true" />
               Search

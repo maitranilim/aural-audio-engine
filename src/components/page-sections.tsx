@@ -1,10 +1,8 @@
 import { ChevronDown, Keyboard, Mic, Pointer } from "lucide-react";
-import { useLenis } from "lenis/react";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { EXAMPLES } from "@/lib/constants";
 import { scrollToId } from "@/lib/scroll-to";
-import { subscribe } from "@/lib/scroll-progress";
-import { useTrackedSection } from "@/lib/use-scroll-reveal";
+import { useChapterBeat } from "@/lib/use-scroll";
 import { cn } from "@/lib/utils";
 
 const HOW_BEATS = [
@@ -38,7 +36,8 @@ const HOUSE_CORNERS = [
     name: "French House",
     branch: "Filter House",
     recording: "Music Sounds Better with You · Stardust",
-    detail: "Disco samples, pumping compression, and sweeping filters define the French-touch branch.",
+    detail:
+      "Disco samples, pumping compression, and sweeping filters define the French-touch branch.",
   },
   {
     name: "Progressive House",
@@ -92,32 +91,6 @@ const WORKED_GROUPS = ["EDM", "Hip-Hop", "Jazz", "Pop"].map((genre) => ({
   rows: WORKED.filter((row) => row.genre === genre),
 }));
 
-/**
- * Ties a chapter's rail to how far through it the reader actually is.
- *
- * `step` is state because it changes three times per chapter; the continuous
- * value goes straight onto a DOM node as `--track`, because re-rendering React
- * on every scroll frame is what makes a page feel heavy.
- */
-function useChapterBeat(id: string, length: number) {
-  const ref = useTrackedSection<HTMLElement>(id);
-  const railRef = useRef<HTMLDivElement>(null);
-  const [step, setStep] = useState(0);
-
-  useEffect(
-    () =>
-      subscribe((state) => {
-        const p = state.sections[id] ?? 0;
-        railRef.current?.style.setProperty("--track", String(p));
-        const next = Math.min(length - 1, Math.floor(p * length));
-        setStep((prev) => (prev === next ? prev : next));
-      }),
-    [id, length],
-  );
-
-  return { ref, railRef, step };
-}
-
 function Scene({ children, id }: { children: ReactNode; id?: string }) {
   return (
     <div id={id} className="scene">
@@ -141,7 +114,6 @@ function Rail({
   railRef: React.RefObject<HTMLDivElement | null>;
   sectionId: string;
 }) {
-  const lenis = useLenis();
   const [openBeat, setOpenBeat] = useState<number | null>(null);
 
   return (
@@ -166,7 +138,7 @@ function Rail({
                 aria-controls={`${sectionId}-beat-note-${i + 1}`}
                 onClick={() => {
                   setOpenBeat((current) => (current === i ? null : i));
-                  scrollToId(`${sectionId}-beat-${i + 1}`, lenis, -96, 0.85);
+                  scrollToId(`${sectionId}-beat-${i + 1}`);
                 }}
                 className={cn(
                   "flex min-h-11 w-full items-center gap-3 rounded-full px-3 py-2 text-left md:rounded-2xl",
@@ -220,7 +192,7 @@ function Door({
 }
 
 export function HowSection() {
-  const { ref, railRef, step } = useChapterBeat("how", HOW_BEATS.length);
+  const { ref, railRef, step } = useChapterBeat<HTMLElement>(HOW_BEATS.length);
   return (
     <section id="how" ref={ref} className="chapter scroll-mt-24">
       <div className="mx-auto grid max-w-6xl grid-cols-1 md:grid-cols-[minmax(0,240px)_1fr] lg:grid-cols-[minmax(0,280px)_1fr]">
@@ -366,7 +338,7 @@ const LINEAGE_BEATS = [
 ] as const;
 
 export function LineageSection() {
-  const { ref, railRef, step } = useChapterBeat("lineage", LINEAGE_BEATS.length);
+  const { ref, railRef, step } = useChapterBeat<HTMLElement>(LINEAGE_BEATS.length);
   const [selectedCorner, setSelectedCorner] = useState<(typeof HOUSE_CORNERS)[number]>(
     HOUSE_CORNERS[2],
   );
@@ -459,11 +431,7 @@ export function LineageSection() {
                   );
                 })}
               </div>
-              <div
-                className="mt-6 glass rounded-[28px] p-6"
-                aria-live="polite"
-                aria-atomic="true"
-              >
+              <div className="mt-6 glass rounded-[28px] p-6" aria-live="polite" aria-atomic="true">
                 <div className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted">
                   Example recording
                 </div>
@@ -473,9 +441,7 @@ export function LineageSection() {
                 <p className="mt-2 text-xs font-medium uppercase tracking-[0.14em] text-accent">
                   {selectedCorner.recording}
                 </p>
-                <p className="mt-2 text-sm leading-relaxed text-muted">
-                  {selectedCorner.detail}
-                </p>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{selectedCorner.detail}</p>
               </div>
             </div>
           </Scene>
@@ -563,16 +529,9 @@ export function AtlasSection({
   onPick: (query: string) => void;
   disabled: boolean;
 }) {
-  const ref = useTrackedSection<HTMLElement>("atlas");
   return (
-    <section
-      id="atlas"
-      ref={ref}
-      className="mx-auto min-h-dvh max-w-6xl scroll-mt-24 px-4 py-32 sm:px-6"
-    >
-      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
-        Atlas
-      </p>
+    <section id="atlas" className="mx-auto min-h-dvh max-w-6xl scroll-mt-24 px-4 py-32 sm:px-6">
+      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">Atlas</p>
       <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-6xl">
         Try a known recording
       </h2>
@@ -614,9 +573,7 @@ export function AboutSection({ onReplayIntro }: { onReplayIntro: () => void }) {
       id="about"
       className="mx-auto flex min-h-[70vh] max-w-6xl flex-col justify-center px-4 py-24 sm:px-6"
     >
-      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">
-        About
-      </p>
+      <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-muted">About</p>
       <h2 className="mt-4 font-display text-4xl font-semibold tracking-tight sm:text-6xl">
         Built as a listening instrument
       </h2>
@@ -636,12 +593,11 @@ export function AboutSection({ onReplayIntro }: { onReplayIntro: () => void }) {
 }
 
 export function ScrollCue({ target = "how" }: { target?: string }) {
-  const lenis = useLenis();
   return (
     <button
       type="button"
       onClick={() => {
-        scrollToId(target, lenis, -40, 1.2);
+        scrollToId(target);
       }}
       className="mx-auto flex min-h-11 flex-col items-center gap-2 text-[10px] font-medium uppercase tracking-[0.2em] text-muted"
     >
