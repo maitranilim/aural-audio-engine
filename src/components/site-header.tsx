@@ -61,7 +61,7 @@ export function SiteHeader({
         </a>
         <div
           className={cn(
-            "min-w-0 overflow-hidden transition-[opacity,flex-grow] duration-300",
+            "min-w-0 transition-[opacity,flex-grow] duration-300",
             docked || listening
               ? "flex-1 opacity-100"
               : "pointer-events-none w-0 flex-none opacity-0",
@@ -92,7 +92,7 @@ export function SiteHeader({
               )}
             >
               <Search className="size-4" aria-hidden="true" />
-              Search
+              <span className="hidden min-[430px]:inline">Search</span>
             </button>
           </div>
         </div>
